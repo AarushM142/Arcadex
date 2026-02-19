@@ -199,6 +199,15 @@ const TicTacToe = () => {
         </div>
     );
 
+    const showHint = () => {
+        if (!engine) return;
+        const bestMove = engine.getHint();
+        if (bestMove !== -1) {
+            setHint(bestMove);
+            setTimeout(() => setHint(null), 2000);
+        }
+    };
+
     return (
         <AppShell>
             <div className="max-w-4xl mx-auto py-8 px-4">

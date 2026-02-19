@@ -398,16 +398,6 @@ const Blackjack = () => {
 
                             {/* Action Bar */}
                             {/* Action Bar - Fixed Bottom for Mobile */}
-                            {isMyTurn && (
-                                <div className="fixed bottom-0 left-0 right-0 z-[200] p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8 md:pb-8 flex justify-center">
-                                    <div className="flex gap-2 md:gap-4 bg-black/60 backdrop-blur-md p-2 md:p-4 rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl animate-in slide-in-from-bottom-10">
-                                        <button onClick={() => handleAction('HIT')} className="w-16 h-12 md:w-24 md:h-16 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">HIT</button>
-                                        <button onClick={() => handleAction('STAND')} className="w-16 h-12 md:w-24 md:h-16 bg-red-500 hover:bg-red-400 text-white font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">STAND</button>
-                                        {canDouble && <button onClick={() => handleAction('DOUBLE')} className="w-16 h-12 md:w-24 md:h-16 bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">X2</button>}
-                                        {canSplit && <button onClick={() => handleAction('SPLIT')} className="w-16 h-12 md:w-24 md:h-16 bg-purple-500 hover:bg-purple-400 text-white font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">SPLIT</button>}
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Post-Round Actions - Non-blocking UI */}
                             {isWaitingForNextRound && (
@@ -441,6 +431,18 @@ const Blackjack = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Action Bar - Fixed Bottom for Mobile - Moved outside container to avoid clipping */}
+                {isMyTurn && (
+                    <div className="fixed bottom-0 left-0 right-0 z-[200] p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8 md:pb-8 flex justify-center pointer-events-auto">
+                        <div className="flex gap-2 md:gap-4 bg-black/60 backdrop-blur-md p-2 md:p-4 rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl animate-in slide-in-from-bottom-10 opacity-100">
+                            <button onClick={() => handleAction('HIT')} className="w-16 h-12 md:w-24 md:h-16 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95 shadow-lg shadow-emerald-500/20">HIT</button>
+                            <button onClick={() => handleAction('STAND')} className="w-16 h-12 md:w-24 md:h-16 bg-red-500 hover:bg-red-400 text-white font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95 shadow-lg shadow-red-500/20">STAND</button>
+                            {canDouble && <button onClick={() => handleAction('DOUBLE')} className="w-16 h-12 md:w-24 md:h-16 bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95 shadow-lg shadow-yellow-400/20">X2</button>}
+                            {canSplit && <button onClick={() => handleAction('SPLIT')} className="w-16 h-12 md:w-24 md:h-16 bg-purple-500 hover:bg-purple-400 text-white font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95 shadow-lg shadow-purple-500/20">SPLIT</button>}
+                        </div>
+                    </div>
+                )}
             </div>
         </AppShell>
     );

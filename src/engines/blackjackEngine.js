@@ -180,4 +180,13 @@ export class BlackjackEngine {
         });
         return playerResults;
     }
+
+    getState() {
+        return {
+            dealerHand: this.dealerHand,
+            playerHands: this.playerHands,
+            activeHandIndex: this.activeHandIndex,
+            isGameOver: this.playerHands.every(h => h.isDone)
+        };
+    }
 }
