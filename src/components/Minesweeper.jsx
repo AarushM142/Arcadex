@@ -170,22 +170,24 @@ const Minesweeper = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-6 gap-2 bg-black/40 p-4 rounded-2xl border border-white/5 shadow-2xl relative z-10">
-                        {gameState.board.map((row, r) => row.map((cell, c) => (
-                            <button
-                                key={`${r}-${c}`}
-                                onClick={() => handleCellClick(r, c)}
-                                className={`w-12 h-12 md:w-16 md:h-16 rounded-lg transition-all flex items-center justify-center text-xl font-black border-2
-                                    ${cell.isRevealed
-                                        ? cell.isMine
-                                            ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
-                                            : 'bg-white/5 border-transparent text-green-400'
-                                        : 'bg-white/10 border-white/5 hover:bg-white/20 hover:border-white/10 cursor-pointer'
-                                    }`}
-                            >
-                                {cell.isRevealed ? (cell.isMine ? '💣' : (cell.adjacentMines || '')) : ''}
-                            </button>
-                        )))}
+                    <div className="w-full overflow-x-auto flex justify-center p-2">
+                        <div className="grid grid-cols-6 gap-2 bg-black/40 p-4 rounded-2xl border border-white/5 shadow-2xl relative z-10 min-w-fit">
+                            {gameState.board.map((row, r) => row.map((cell, c) => (
+                                <button
+                                    key={`${r}-${c}`}
+                                    onClick={() => handleCellClick(r, c)}
+                                    className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-lg transition-all flex items-center justify-center text-lg md:text-xl font-black border-2
+                                        ${cell.isRevealed
+                                            ? (cell.isMine
+                                                ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
+                                                : 'bg-white/5 border-transparent text-green-400')
+                                            : 'bg-white/10 border-white/5 hover:bg-white/20 hover:border-white/10 cursor-pointer'
+                                        }`}
+                                >
+                                    {cell.isRevealed ? (cell.isMine ? '💣' : (cell.adjacentMines || '')) : ''}
+                                </button>
+                            )))}
+                        </div>
                     </div>
 
                     <div className="mt-8 text-center space-y-4 relative z-10">
