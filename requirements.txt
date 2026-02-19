@@ -3,3 +3,6 @@ uvicorn
 supabase
 python-jose[cryptography]
 python-dotenv
+python-socketio
+# websockets is often needed for uvicorn
+websockets
