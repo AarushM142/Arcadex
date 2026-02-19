@@ -171,17 +171,17 @@ const Minesweeper = () => {
                     </div>
 
                     <div className="w-full overflow-x-auto flex justify-center p-2">
-                        <div className="grid grid-cols-6 gap-2 bg-black/40 p-4 rounded-2xl border border-white/5 shadow-2xl relative z-10 min-w-fit">
+                        <div className="grid grid-cols-6 gap-1 md:gap-2 bg-black/40 p-2 md:p-4 rounded-2xl border border-white/5 shadow-2xl relative z-10 min-w-fit">
                             {gameState.board.map((row, r) => row.map((cell, c) => (
                                 <button
                                     key={`${r}-${c}`}
                                     onClick={() => handleCellClick(r, c)}
-                                    className={`w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-lg transition-all flex items-center justify-center text-lg md:text-xl font-black border-2
+                                    className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-md md:rounded-lg transition-all flex items-center justify-center text-sm md:text-xl font-black border md:border-2 touch-manipulation
                                         ${cell.isRevealed
                                             ? (cell.isMine
                                                 ? 'bg-red-500/20 border-red-500/50 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]'
                                                 : 'bg-white/5 border-transparent text-green-400')
-                                            : 'bg-white/10 border-white/5 hover:bg-white/20 hover:border-white/10 cursor-pointer'
+                                            : 'bg-white/10 border-white/5 hover:bg-white/20 hover:border-white/10 cursor-pointer active:scale-95'
                                         }`}
                                 >
                                     {cell.isRevealed ? (cell.isMine ? '💣' : (cell.adjacentMines || '')) : ''}

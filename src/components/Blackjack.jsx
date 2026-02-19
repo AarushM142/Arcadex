@@ -12,8 +12,8 @@ const CARD_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q',
 const Card = ({ card, hidden }) => {
     if (hidden || card === -1) {
         return (
-            <div className="w-20 h-28 bg-gradient-to-br from-slate-800 to-black rounded-lg border-2 border-white/10 flex items-center justify-center shadow-xl">
-                <div className="text-2xl opacity-20 font-bold">?</div>
+            <div className="w-12 h-16 md:w-20 md:h-28 bg-gradient-to-br from-slate-800 to-black rounded-md md:rounded-lg border md:border-2 border-white/10 flex items-center justify-center shadow-md md:shadow-xl">
+                <div className="text-xl md:text-2xl opacity-20 font-bold">?</div>
             </div>
         );
     }
@@ -21,10 +21,10 @@ const Card = ({ card, hidden }) => {
     const suit = CARD_SUITS[Math.floor(card / 13)];
     const isRed = suit === '♥' || suit === '♦';
     return (
-        <div className={`w-20 h-28 bg-white rounded-lg border-2 border-gray-200 flex flex-col justify-between p-2 shadow-md transform transition-transform hover:-translate-y-1 ${isRed ? 'text-red-600' : 'text-black'}`}>
-            <div className="text-xs font-bold leading-none">{rank}<br /><span>{suit}</span></div>
-            <div className="text-2xl self-center">{suit}</div>
-            <div className="text-xs font-bold leading-none self-end text-right">{rank}<br /><span>{suit}</span></div>
+        <div className={`w-12 h-16 md:w-20 md:h-28 bg-white rounded-md md:rounded-lg border md:border-2 border-gray-200 flex flex-col justify-between p-1 md:p-2 shadow-sm md:shadow-md transform transition-transform hover:-translate-y-1 ${isRed ? 'text-red-600' : 'text-black'}`}>
+            <div className="text-[8px] md:text-xs font-bold leading-none">{rank}<br /><span>{suit}</span></div>
+            <div className="text-lg md:text-2xl self-center">{suit}</div>
+            <div className="text-[8px] md:text-xs font-bold leading-none self-end text-right">{rank}<br /><span>{suit}</span></div>
         </div>
     );
 };
@@ -348,45 +348,45 @@ const Blackjack = () => {
                     )}
 
                     {(gameStatus === 'PLAYING' || gameStatus === 'FINISHED') && (
-                        <div className="flex-1 flex flex-col items-center gap-8 z-10">
+                        <div className="flex-1 flex flex-col items-center gap-4 md:gap-8 z-10 w-full">
                             {/* Dealer */}
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="flex items-center gap-3 bg-black/40 px-6 py-2 rounded-full border border-white/5">
-                                    <Avatar src="" name="D" size="w-10 h-10" />
-                                    <span className="text-sm font-black tracking-widest text-emerald-400">HOUSE</span>
+                            <div className="flex flex-col items-center gap-2 md:gap-4">
+                                <div className="flex items-center gap-2 md:gap-3 bg-black/40 px-4 py-1 md:px-6 md:py-2 rounded-full border border-white/5">
+                                    <Avatar src="" name="D" size="w-8 h-8 md:w-10 md:h-10" />
+                                    <span className="text-xs md:text-sm font-black tracking-widest text-emerald-400">HOUSE</span>
                                 </div>
                                 <div className="flex gap-2">
                                     {dealerHand.cards.map((card, i) => <Card key={i} card={card} hidden={gameStatus === 'PLAYING' && i === 1} />)}
                                 </div>
-                                {gameStatus === 'FINISHED' && <div className="text-3xl font-black text-white italic">{dealerHand.score}</div>}
+                                {gameStatus === 'FINISHED' && <div className="text-2xl md:text-3xl font-black text-white italic">{dealerHand.score}</div>}
                             </div>
 
-                            {/* Game Table Area */}
-                            <div className="w-full flex-1 flex justify-center items-end gap-4 flex-wrap pb-24">
+                            {/* Game Table Area - Mobile: Grid, Desktop: Flex Row */}
+                            <div className="w-full flex-1 grid grid-cols-2 md:flex md:justify-center md:items-end gap-2 md:gap-4 pb-32 md:pb-24 content-start md:content-end">
                                 {players.map((p, pIdx) => (
-                                    <div key={pIdx} className={`bg-black/20 rounded-2xl p-4 border transition-all duration-300 ${turnIndex === pIdx && gameStatus === 'PLAYING' ? 'border-emerald-500/50 bg-emerald-900/10 shadow-[0_0_30px_rgba(16,185,129,0.1)] scale-105' : 'border-white/5 opacity-80'}`}>
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar src={p.profile.avatar_url} name={p.profile.username} />
+                                    <div key={pIdx} className={`bg-black/20 rounded-xl md:rounded-2xl p-2 md:p-4 border transition-all duration-300 flex flex-col items-center md:block ${turnIndex === pIdx && gameStatus === 'PLAYING' ? 'border-emerald-500/50 bg-emerald-900/10 shadow-[0_0_15px_rgba(16,185,129,0.1)] scale-100 md:scale-105' : 'border-white/5 opacity-80'}`}>
+                                        <div className="flex items-center justify-between mb-2 md:mb-4 w-full">
+                                            <div className="flex items-center gap-2 md:gap-3">
+                                                <Avatar src={p.profile.avatar_url} name={p.profile.username} size="w-6 h-6 md:w-10 md:h-10" />
                                                 <div className="text-left">
-                                                    <div className="text-[10px] font-black uppercase tracking-widest text-white/50">{p.sid === socket.id || p.sid === 'local' ? 'YOU' : p.profile.username}</div>
-                                                    <div className="text-xs font-bold text-emerald-400">${p.hands.reduce((acc, h) => acc + h.bet, 0)}</div>
+                                                    <div className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-white/50 max-w-[60px] md:max-w-none truncate">{p.sid === socket.id || p.sid === 'local' ? 'YOU' : p.profile.username}</div>
+                                                    <div className="text-[10px] md:text-xs font-bold text-emerald-400">${p.hands.reduce((acc, h) => acc + h.bet, 0)}</div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Hands Container */}
-                                        <div className="flex gap-4">
+                                        <div className="flex gap-2 md:gap-4 justify-center">
                                             {p.hands.map((hand, hIdx) => (
-                                                <div key={hIdx} className={`flex flex-col items-center gap-2 transition-opacity ${p.active_hand_index === hIdx ? 'opacity-100' : 'opacity-40'}`}>
-                                                    <div className="flex -space-x-8">
+                                                <div key={hIdx} className={`flex flex-col items-center gap-1 md:gap-2 transition-opacity ${p.active_hand_index === hIdx ? 'opacity-100' : 'opacity-40'}`}>
+                                                    <div className="flex -space-x-6 md:-space-x-8">
                                                         {hand.cards.map((c, cIdx) => (
                                                             <div key={cIdx} className="transform hover:-translate-y-2 transition-transform" style={{ marginLeft: cIdx > 0 ? '' : '0' }}>
                                                                 <Card card={c} />
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <div className={`text-[10px] font-black px-2 py-0.5 rounded ${hand.score > 21 ? 'bg-red-500 text-white' : 'bg-white/10 text-white/70'}`}>
+                                                    <div className={`text-[8px] md:text-[10px] font-black px-1.5 py-0.5 rounded ${hand.score > 21 ? 'bg-red-500 text-white' : 'bg-white/10 text-white/70'}`}>
                                                         {hand.score}
                                                     </div>
                                                 </div>
@@ -397,12 +397,15 @@ const Blackjack = () => {
                             </div>
 
                             {/* Action Bar */}
+                            {/* Action Bar - Fixed Bottom for Mobile */}
                             {isMyTurn && (
-                                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-4 bg-black/60 backdrop-blur-md p-4 rounded-3xl border border-white/10 shadow-2xl animate-in slide-in-from-bottom-10">
-                                    <button onClick={() => handleAction('HIT')} className="w-24 h-16 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-xl text-lg transition-transform hover:-translate-y-1">HIT</button>
-                                    <button onClick={() => handleAction('STAND')} className="w-24 h-16 bg-red-500 hover:bg-red-400 text-white font-black rounded-xl text-lg transition-transform hover:-translate-y-1">STAND</button>
-                                    {canDouble && <button onClick={() => handleAction('DOUBLE')} className="w-24 h-16 bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-xl text-lg transition-transform hover:-translate-y-1">X2</button>}
-                                    {canSplit && <button onClick={() => handleAction('SPLIT')} className="w-24 h-16 bg-purple-500 hover:bg-purple-400 text-white font-black rounded-xl text-lg transition-transform hover:-translate-y-1">SPLIT</button>}
+                                <div className="fixed bottom-0 left-0 right-0 z-[200] p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8 md:pb-8 flex justify-center">
+                                    <div className="flex gap-2 md:gap-4 bg-black/60 backdrop-blur-md p-2 md:p-4 rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl animate-in slide-in-from-bottom-10">
+                                        <button onClick={() => handleAction('HIT')} className="w-16 h-12 md:w-24 md:h-16 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">HIT</button>
+                                        <button onClick={() => handleAction('STAND')} className="w-16 h-12 md:w-24 md:h-16 bg-red-500 hover:bg-red-400 text-white font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">STAND</button>
+                                        {canDouble && <button onClick={() => handleAction('DOUBLE')} className="w-16 h-12 md:w-24 md:h-16 bg-yellow-400 hover:bg-yellow-300 text-black font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">X2</button>}
+                                        {canSplit && <button onClick={() => handleAction('SPLIT')} className="w-16 h-12 md:w-24 md:h-16 bg-purple-500 hover:bg-purple-400 text-white font-black rounded-lg md:rounded-xl text-xs md:text-lg transition-transform active:scale-95">SPLIT</button>}
+                                    </div>
                                 </div>
                             )}
 
