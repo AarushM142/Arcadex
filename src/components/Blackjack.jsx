@@ -296,26 +296,26 @@ const Blackjack = () => {
                 <div className="glass-strong card-xl p-6 min-h-[800px] flex flex-col relative overflow-hidden text-white">
                     <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/30 to-black/80 pointer-events-none" />
 
-                    {/* Room Browser Overlay */}
+                    {/* Room Browser Overlay - Full Screen Fixed */}
                     {showRoomBrowser && (
-                        <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center p-4 md:p-12 overflow-y-auto animate-in fade-in pt-24 md:pt-12">
-                            <div className="w-full max-w-4xl space-y-8 pb-20">
-                                <div className="flex justify-between items-center">
-                                    <h2 className="text-4xl font-black italic text-emerald-500">SELECT A TABLE</h2>
-                                    <button onClick={() => setShowRoomBrowser(false)} className="px-6 py-2 glass rounded-full text-xs font-bold uppercase hover:bg-white/10">Back</button>
+                        <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center p-4 md:p-12 overflow-y-auto animate-in fade-in pt-24 pb-32 md:pt-12 md:pb-12">
+                            <div className="w-full max-w-4xl space-y-8">
+                                <div className="flex justify-between items-center sticky top-0 bg-black/95 py-4 z-10 backdrop-blur-sm">
+                                    <h2 className="text-2xl md:text-4xl font-black italic text-emerald-500">SELECT A TABLE</h2>
+                                    <button onClick={() => setShowRoomBrowser(false)} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-full text-xs font-bold uppercase transition-colors">Back</button>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button onClick={createRoom} className="p-8 border-2 border-dashed border-white/10 rounded-3xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all group text-left">
+                                    <button onClick={createRoom} className="p-8 border-2 border-dashed border-white/10 rounded-3xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all group text-left relative z-10">
                                         <h3 className="text-2xl font-black text-white group-hover:text-emerald-400">+ CREATE NEW TABLE</h3>
                                         <p className="text-sm text-white/40 mt-2">Start your own high-stakes room</p>
                                     </button>
                                     {availableRooms.map(room => (
                                         <button key={room.id} onClick={() => joinRoom(room.id)} disabled={room.players >= room.max_players}
-                                            className={`p-6 glass rounded-2xl border border-white/5 text-left transition-all relative overflow-hidden ${room.players >= room.max_players ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-white/5'}`}>
+                                            className={`p-6 glass rounded-2xl border border-white/5 text-left transition-all relative overflow-hidden z-10 ${room.players >= room.max_players ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-white/5'}`}>
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
-                                                    <h3 className="text-xl font-bold text-white">{room.name}</h3>
+                                                    <h3 className="text-xl font-bold text-white max-w-[150px] truncate">{room.name}</h3>
                                                     <span className={`text-[10px] font-black px-2 py-0.5 rounded ${room.status === 'PLAYING' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'}`}>{room.status}</span>
                                                 </div>
                                                 <div className="text-right">
@@ -337,11 +337,11 @@ const Blackjack = () => {
                     )}
 
                     {!showRoomBrowser && gameStatus === 'MODE_SELECT' && (
-                        <div className="text-center space-y-12 animate-in fade-in zoom-in w-full my-auto z-10">
-                            <h1 className="text-8xl font-black italic tracking-tighter text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">BLACKJACK</h1>
-                            <div className="flex flex-wrap justify-center gap-8">
-                                <button onClick={openRoomBrowser} className="w-64 py-8 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-3xl shadow-2xl transition-all hover:-translate-y-2 text-xl">🌐 BROWSE TABLES</button>
-                                <button onClick={startLocalGame} className="w-64 py-8 glass hover:bg-white hover:text-black font-black rounded-3xl transition-all hover:-translate-y-2 text-xl">🤖 VS BOT</button>
+                        <div className="text-center space-y-12 animate-in fade-in zoom-in w-full my-auto z-20 relative">
+                            <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">BLACKJACK</h1>
+                            <div className="flex flex-col md:flex-row flex-wrap justify-center gap-6 md:gap-8 px-4">
+                                <button onClick={openRoomBrowser} className="w-full md:w-64 py-6 md:py-8 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-3xl shadow-2xl transition-all active:scale-95 hover:-translate-y-2 text-xl relative z-30">🌐 BROWSE TABLES</button>
+                                <button onClick={startLocalGame} className="w-full md:w-64 py-6 md:py-8 glass hover:bg-white hover:text-black font-black rounded-3xl transition-all active:scale-95 hover:-translate-y-2 text-xl relative z-30">🤖 VS BOT</button>
                             </div>
                             {message && <p className="text-red-400 font-bold uppercase tracking-widest">{message}</p>}
                         </div>
