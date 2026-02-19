@@ -292,14 +292,14 @@ const Blackjack = () => {
 
     return (
         <AppShell>
-            <div className="max-w-7xl mx-auto py-6 px-4">
+            <div className="max-w-7xl mx-auto py-6 px-4 pt-20 md:pt-6">
                 <div className="glass-strong card-xl p-6 min-h-[800px] flex flex-col relative overflow-hidden text-white">
                     <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/30 to-black/80 pointer-events-none" />
 
                     {/* Room Browser Overlay */}
                     {showRoomBrowser && (
-                        <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center p-12 overflow-y-auto animate-in fade-in">
-                            <div className="w-full max-w-4xl space-y-8">
+                        <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center p-4 md:p-12 overflow-y-auto animate-in fade-in pt-24 md:pt-12">
+                            <div className="w-full max-w-4xl space-y-8 pb-20">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-4xl font-black italic text-emerald-500">SELECT A TABLE</h2>
                                     <button onClick={() => setShowRoomBrowser(false)} className="px-6 py-2 glass rounded-full text-xs font-bold uppercase hover:bg-white/10">Back</button>

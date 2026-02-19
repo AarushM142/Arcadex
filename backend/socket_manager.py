@@ -162,6 +162,18 @@ async def handle_join_room(sid, data):
 
 async def join_blackjack_room(sid, room_id, profile):
     room = rooms[room_id]
+    
+    # Check if player already in room to prevent duplicates
+    if any(p['sid'] == sid for p in room['players']):
+        # Optional: Re-send match start if needed, or just return
+        await sio.emit("bj_match_start", {
+            "room_id": room_id, "players": [
+                {"username": p['profile']['username'], "avatar_url": p['profile']['avatar_url'], "sid": p['sid']}
+                for p in room['players']
+            ]
+        }, room=room_id, to=sid)
+        return
+
     if len(room['players']) >= 4:
         await sio.emit("error", {"message": "Room is full"}, to=sid)
         return
