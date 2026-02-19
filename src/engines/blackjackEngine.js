@@ -111,7 +111,9 @@ export class BlackjackEngine {
     split() {
         const active = this.playerHands[this.activeHandIndex];
         if (active.cards.length !== 2 || active.isDone) return;
-        if (this._getCardValue(active.cards[0]) !== this._getCardValue(active.cards[1])) return;
+
+        // Use rank check (card % 13) instead of value check
+        if ((active.cards[0] % 13) !== (active.cards[1] % 13)) return;
 
         const newHand = {
             cards: [active.cards.pop()],

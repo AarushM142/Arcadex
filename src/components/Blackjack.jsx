@@ -347,7 +347,7 @@ const Blackjack = () => {
                                 )}
 
                                 {gameState.playerHands[gameState.activeHandIndex].cards.length === 2 &&
-                                    engine._getCardValue(gameState.playerHands[gameState.activeHandIndex].cards[0]) === engine._getCardValue(gameState.playerHands[gameState.activeHandIndex].cards[1]) && (
+                                    (gameState.playerHands[gameState.activeHandIndex].cards[0] % 13) === (gameState.playerHands[gameState.activeHandIndex].cards[1] % 13) && (
                                         <button onClick={() => handleAction(GameActions.SPLIT)} className="min-w-[100px] h-14 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-400/30 text-purple-400 rounded-xl font-bold transition-all text-xs tracking-widest hover:-translate-y-0.5">SPLIT</button>
                                     )}
 
