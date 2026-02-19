@@ -9,7 +9,7 @@ router = APIRouter()
 async def auth_dependency(authorization: str | None = Header(default=None)):
     """
     Extract and validate the Supabase JWT from Authorization header.
-    DB wiring is deferred; this currently only parses and returns a minimal user dict.
+    Also checks if the user is banned from the Arcadex platform.
     """
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
@@ -18,6 +18,21 @@ async def auth_dependency(authorization: str | None = Header(default=None)):
         )
     token = authorization.split(" ", 1)[1]
     user = await get_current_user(token)
+    
+    # Check for Ban Status
+    from backend.services.supabase_client import supabase
+    import asyncio
+    
+    profile_resp = await asyncio.to_thread(
+        supabase.table("profiles").select("is_banned").eq("id", user["id"]).single().execute
+    )
+    
+    if profile_resp.data and profile_resp.data.get("is_banned"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been banned from Arcadex. Contact support for details."
+        )
+        
     return user
 
 

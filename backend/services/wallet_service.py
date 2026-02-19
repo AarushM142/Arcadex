@@ -10,7 +10,7 @@ def _compute_coins(amount_rupees: int) -> int:
 
 async def get_balance(user_id: str):
     response = await asyncio.to_thread(supabase.table("profiles").select("coin_balance").eq("id", user_id).single().execute)
-    return response.data.get("coin_balance", 0) if response.data else 0
+    return response.data.get("coin_balance", 100) if response.data else 100
 
 async def list_transactions(user_id: str):
     response = await asyncio.to_thread(supabase.table("transactions").select("*").eq("user_id", user_id).order("created_at", desc=True).execute)
@@ -82,3 +82,20 @@ async def reject_transaction(transaction_id: str) -> Dict:
     )
     txn["status"] = "rejected"
     return txn
+
+async def list_all_users() -> list:
+    response = await asyncio.to_thread(
+        supabase.table("profiles").select("*").order("created_at", desc=True).execute
+    )
+    return response.data if response.data else []
+
+async def toggle_user_ban(user_id: str, is_banned: bool) -> dict:
+    # This assumes there is an 'is_banned' column in the profiles table
+    response = await asyncio.to_thread(
+        supabase.table("profiles").update({"is_banned": is_banned}).eq("id", user_id).execute
+    )
+    return response.data[0] if response.data else {}
+
+async def grant_coins_to_user(user_id: str, amount: int) -> int:
+    # amount can be positive or negative
+    return await update_balance(user_id, amount)

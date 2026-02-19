@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-
 from backend.routes.auth import auth_dependency
 from backend.services import wallet_service
 
@@ -32,6 +31,44 @@ async def admin_list_all_transactions(user=Depends(auth_dependency)):
         )
     items = await wallet_service.list_all_pending_transactions()
     return {"transactions": items}
+
+
+@router.get("/admin/users")
+async def admin_list_all_users(user=Depends(auth_dependency)):
+    """Admin-only: list all registered users."""
+    if user.get("email") != ADMIN_EMAIL:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    users = await wallet_service.list_all_users()
+    return {"users": users}
+
+
+@router.post("/admin/users/{user_id}/ban")
+async def admin_ban_user(user_id: str, payload: dict, user=Depends(auth_dependency)):
+    """Admin-only: ban or unban a user."""
+    if user.get("email") != ADMIN_EMAIL:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    is_banned = payload.get("is_banned", True)
+    updated_user = await wallet_service.toggle_user_ban(user_id, is_banned)
+    return {"user": updated_user}
+
+
+@router.post("/admin/users/{user_id}/grant")
+async def admin_grant_coins(user_id: str, payload: dict, user=Depends(auth_dependency)):
+    """Admin-only: grant or deduct coins from a user."""
+    if user.get("email") != ADMIN_EMAIL:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    amount = int(payload.get("amount", 0))
+    new_balance = await wallet_service.grant_coins_to_user(user_id, amount)
+    return {"new_balance": new_balance}
 
 
 @router.post("/upi/submit")

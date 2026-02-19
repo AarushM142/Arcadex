@@ -17,18 +17,68 @@ export function AppShell({ children }) {
   const navigate = useNavigate();
   const [balance, setBalance] = useState(0);
   const [profile, setProfile] = useState({ username: '', avatar_url: '' });
+  const [isBanned, setIsBanned] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (user) {
-        const { data } = await supabase
+        // Try to fetch existing profile
+        const { data, error } = await supabase
           .from('profiles')
-          .select('coin_balance, username, avatar_url')
+          .select('coin_balance, username, avatar_url, is_banned')
           .eq('id', user.id)
           .single();
 
-        if (data) {
-          setBalance(data.coin_balance || 0);
+        if (error && error.code === 'PGRST116') {
+          // Profile doesn't exist, create it with 100 coins
+          const newProfile = {
+            id: user.id,
+            coin_balance: 100,
+            username: user.user_metadata?.username || user.email.split('@')[0],
+            email: user.email,
+            avatar_url: '',
+            is_banned: false
+          };
+
+          const { data: createdData, error: insertError } = await supabase
+            .from('profiles')
+            .insert(newProfile)
+            .select()
+            .single();
+
+          if (!insertError && createdData) {
+            setBalance(createdData.coin_balance);
+            setProfile({ username: createdData.username, avatar_url: createdData.avatar_url });
+          }
+        } else if (data) {
+          if (data.is_banned) {
+            setIsBanned(true);
+            return;
+          }
+          let finalBalance = data.coin_balance;
+
+          // SPECIAL FIX: If user has 0 coins, check if they are NEW (0 games played)
+          if (finalBalance === 0) {
+            const { count } = await supabase
+              .from('game_sessions')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id);
+
+            if (count === 0) {
+              // They are new! Give the 100 coin bonus
+              const { data: updatedData } = await supabase
+                .from('profiles')
+                .update({ coin_balance: 100 })
+                .eq('id', user.id)
+                .select()
+                .single();
+
+              if (updatedData) finalBalance = 100;
+            }
+          }
+
+          setBalance(finalBalance);
           setProfile({ username: data.username, avatar_url: data.avatar_url });
         }
       }
@@ -36,25 +86,151 @@ export function AppShell({ children }) {
     fetchProfile();
   }, [user]);
 
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  if (isBanned) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center">
+        <AnimatedBackground />
+        <div className="relative z-10 max-w-md glass-strong p-12 border-red-500/50 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+          <div className="text-7xl mb-6">🚫</div>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">ACCESS DENIED</h1>
+          <p className="text-red-400 font-medium mb-8">
+            Your Arcadex account has been suspended for violating our terms of service.
+          </p>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate('/signin');
+              setIsBanned(false);
+            }}
+            className="w-full btn-primary bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20"
+          >
+            LOG OUT
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
       {/* Reactive Animated Background */}
       <AnimatedBackground />
 
+      {/* Mobile Sidebar (Drawer) */}
+      <div
+        className={`fixed inset-0 z-50 transition-visibility duration-300 ${mobileMenuOpen ? 'visible' : 'invisible'}`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={closeMobileMenu}
+        />
+
+        {/* Sidebar Content */}
+        <aside
+          className={`absolute left-0 top-0 h-full w-72 bg-black/80 backdrop-blur-2xl border-r border-white/10 p-6 transition-transform duration-300 ease-out shadow-2xl ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        >
+          <div className="flex items-center justify-between mb-10">
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => { navigate('/dashboard'); closeMobileMenu(); }}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-purple-500 text-sm font-bold text-white shadow-lg">
+                🎮
+              </div>
+              <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                ARCADEX
+              </span>
+            </div>
+            <button
+              onClick={closeMobileMenu}
+              className="text-muted hover:text-white text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          <nav className="flex flex-col gap-4">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={closeMobileMenu}
+                className={({ isActive }) =>
+                  [
+                    "px-4 py-3 text-sm font-medium transition-all rounded-xl flex items-center gap-4",
+                    isActive
+                      ? "text-cyan-400 bg-cyan-400/10 border border-cyan-400/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]"
+                      : "text-muted hover:text-foreground hover:bg-white/5",
+                  ].join(" ")
+                }
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+            {user?.email === ADMIN_EMAIL && (
+              <NavLink
+                to="/admin"
+                onClick={closeMobileMenu}
+                className={({ isActive }) =>
+                  [
+                    "px-4 py-3 text-sm font-medium transition-all rounded-xl flex items-center gap-4",
+                    isActive
+                      ? "text-purple-400 bg-purple-400/10 border border-purple-400/20 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                      : "text-muted hover:text-foreground hover:bg-white/5",
+                  ].join(" ")
+                }
+              >
+                <span className="text-xl">🛡️</span>
+                <span>Admin</span>
+              </NavLink>
+            )}
+          </nav>
+
+          <div className="absolute bottom-10 left-6 right-6">
+            <div className="glass p-4 rounded-2xl border-white/5 bg-cyan-500/5">
+              <p className="text-[10px] text-muted uppercase font-bold tracking-widest mb-1">Current Balance</p>
+              <div className="flex items-center gap-2">
+                <img src="/currency.png" alt="coins" className="w-5 h-5 object-contain" />
+                <span className="text-lg font-black text-white">{balance.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-40 border-b border-border-subtle bg-black/40 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-500 text-lg font-bold text-white shadow-lg shadow-cyan-500/50">
-              🎮
+
+          {/* Left: Hamburger (Mobile) + Logo */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex flex-col gap-1.5 md:hidden p-2 group"
+            >
+              <div className="w-6 h-0.5 bg-muted group-hover:bg-cyan-400 transition-colors rounded-full" />
+              <div className="w-6 h-0.5 bg-muted group-hover:bg-cyan-400 transition-colors rounded-full" />
+              <div className="w-4 h-0.5 bg-muted group-hover:bg-cyan-400 transition-colors rounded-full" />
+            </button>
+
+            <div
+              className="flex items-center gap-3 cursor-pointer group"
+              onClick={() => navigate('/dashboard')}
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-500 text-lg font-bold text-white shadow-lg group-hover:shadow-cyan-500/50 transition-all group-hover:-rotate-6">
+                🎮
+              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent hidden sm:block">
+                ARCADEX
+              </span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              ARCADEX
-            </span>
           </div>
 
-          {/* Center: Tab Navigation */}
+          {/* Center: Tab Navigation (Desktop) */}
           <nav className="hidden gap-2 md:flex">
             {navItems.map((item) => (
               <NavLink
@@ -108,10 +284,10 @@ export function AppShell({ children }) {
 
           {/* Right: Wallet & User Pill */}
           <div className="flex items-center gap-4">
-            <div className="glass card-xl pill flex items-center gap-3 px-4 py-2.5">
+            <div className="glass card-xl pill flex items-center gap-3 px-4 py-2 md:py-2.5">
               <div className="flex items-center gap-2">
-                <img src="/currency.png" alt="coins" className="w-6 h-6 object-contain" />
-                <span className="text-base font-bold text-foreground">
+                <img src="/currency.png" alt="coins" className="w-5 h-5 md:w-6 md:h-6 object-contain" />
+                <span className="text-sm md:text-base font-bold text-foreground">
                   {balance.toLocaleString()}
                 </span>
               </div>
@@ -130,7 +306,7 @@ export function AppShell({ children }) {
                   </div>
                 )}
               </div>
-              <span className="text-sm font-medium text-muted group-hover:text-foreground transition-colors hidden sm:block">
+              <span className="text-sm font-medium text-muted group-hover:text-foreground transition-colors hidden lg:block">
                 {profile.username || user?.email?.split('@')[0]}
               </span>
             </button>
@@ -139,7 +315,9 @@ export function AppShell({ children }) {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 mx-auto max-w-7xl px-4 py-6">{children}</main>
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-6">
+        {children}
+      </main>
     </div>
   );
 }

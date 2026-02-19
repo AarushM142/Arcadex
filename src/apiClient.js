@@ -93,3 +93,32 @@ export async function adminRejectTransaction(accessToken, transactionId) {
   }
   return res.json();
 }
+
+export async function adminGetAllUsers(accessToken) {
+  const opts = await withAuth({ accessToken });
+  const res = await fetch(`${API_BASE_URL}/wallet/admin/users`, opts);
+  if (!res.ok) throw new Error("Failed to fetch all users");
+  return res.json();
+}
+
+export async function adminToggleUserBan(accessToken, userId, isBanned) {
+  const opts = await withAuth({
+    accessToken,
+    method: "POST",
+    body: JSON.stringify({ is_banned: isBanned })
+  });
+  const res = await fetch(`${API_BASE_URL}/wallet/admin/users/${userId}/ban`, opts);
+  if (!res.ok) throw new Error("Failed to toggle user ban");
+  return res.json();
+}
+
+export async function adminGrantCoins(accessToken, userId, amount) {
+  const opts = await withAuth({
+    accessToken,
+    method: "POST",
+    body: JSON.stringify({ amount: amount })
+  });
+  const res = await fetch(`${API_BASE_URL}/wallet/admin/users/${userId}/grant`, opts);
+  if (!res.ok) throw new Error("Failed to grant coins");
+  return res.json();
+}

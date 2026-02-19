@@ -28,7 +28,8 @@ const Dashboard = () => {
           .eq('id', user.id)
           .single();
 
-        if (data) setBalance(data.coin_balance || 0);
+        if (data) setBalance(data.coin_balance ?? 100);
+        else setBalance(100);
       }
     };
     fetchBalance();

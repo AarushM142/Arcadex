@@ -32,13 +32,13 @@ const Singin = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 relative overflow-hidden">
       <AnimatedBackground />
-      
+
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-2xl font-bold text-white mb-4 shadow-lg shadow-purple-500/50">
-            PD
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-500 text-2xl font-bold text-white mb-4 shadow-lg shadow-cyan-500/50">
+            🎮
           </div>
           <h1 className="text-4xl font-display mb-2 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent">
             Welcome Back
