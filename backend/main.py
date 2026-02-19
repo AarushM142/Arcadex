@@ -10,7 +10,7 @@ from backend.services.supabase_client import supabase
 from backend.auth_utils import get_current_user
 from backend.routes import auth, wallet, games
 
-app = FastAPI(title="Arcade Platform Backend")
+app = FastAPI(title="Arcade Platform Backend", root_path="/api")
 
 app.add_middleware(
     CORSMiddleware,
