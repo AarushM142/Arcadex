@@ -25,7 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     return {"status": "ok"}
 
@@ -38,12 +38,12 @@ async def test_db():
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/me")
+@app.get("/api/me")
 async def read_users_me(current_user: dict = Depends(auth.auth_dependency)):
     # Testing the RLS and JWT verification
     return {"user_id": current_user["id"], "message": "You are authenticated!"}
 
 # Include routers
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(wallet.router, prefix="/wallet", tags=["wallet"])
-app.include_router(games.router, prefix="/games", tags=["games"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(wallet.router, prefix="/api/wallet", tags=["wallet"])
+app.include_router(games.router, prefix="/api/games", tags=["games"])
