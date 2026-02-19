@@ -97,7 +97,7 @@ const Dashboard = () => {
       borderColor: 'border-cyan-400/30',
       glowColor: 'shadow-[0_0_20px_rgba(34,211,238,0.3)]',
       description: 'Beat the dealer. Hit 21 or go bust. Classic casino card game with C powered logic.',
-      players: '1 Player',
+      players: '1-4 Players',
       thumbnail: blackjackThumbnail,
     },
     {
