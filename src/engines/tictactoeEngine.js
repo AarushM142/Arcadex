@@ -5,7 +5,8 @@
 
 export const GameMode = {
     PVP: 0,
-    PV_AI: 1
+    PV_AI: 1,
+    ONLINE_PVP: 2
 };
 
 export const Player = {

@@ -47,3 +47,7 @@ async def read_users_me(current_user: dict = Depends(auth.auth_dependency)):
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(wallet.router, prefix="/api/wallet", tags=["wallet"])
 app.include_router(games.router, prefix="/api/games", tags=["games"])
+
+# Mount Socket.IO
+from backend.socket_manager import socket_app
+app.mount("/", socket_app)
