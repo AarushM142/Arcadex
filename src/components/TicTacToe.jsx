@@ -50,7 +50,7 @@ const TicTacToe = () => {
         if (myProfile.username && location.state?.autoJoin && !hasAutoJoined.current) {
             hasAutoJoined.current = true;
             const roomId = location.state.autoJoin;
-            navigate('/tictactoe', { replace: true, state: {} });
+            navigate('/play/tictactoe', { replace: true, state: {} });
 
             if (userBalance >= 5) {
                 // deduct 5 coins

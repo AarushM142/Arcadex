@@ -79,7 +79,7 @@ const Blackjack = () => {
             hasAutoJoined.current = true;
             const roomId = location.state.autoJoin;
             // Clear location state so refresh doesn't auto join again
-            navigate('/blackjack', { replace: true, state: {} });
+            navigate('/play/blackjack', { replace: true, state: {} });
             if (userBalance >= currentBet) {
                 setIsOnline(true);
                 socket.emit("join_room", { room_id: roomId, profile: myProfile });

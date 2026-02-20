@@ -283,7 +283,7 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
                                                 <button
                                                     onClick={() => {
                                                         onClose();
-                                                        navigate(`/${inviteGame}`, { state: { autoJoin: inviteRoom } });
+                                                        navigate(`/play/${inviteGame}`, { state: { autoJoin: inviteRoom } });
                                                     }}
                                                     className={`px-4 py-2 rounded-lg font-black uppercase text-xs transition-colors ${isMe ? 'bg-black text-cyan-400 hover:bg-black/80' : 'bg-cyan-500 text-black hover:bg-cyan-400'}`}
                                                 >
