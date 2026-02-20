@@ -63,7 +63,9 @@ const TicTacToe = () => {
                     setGameState(newEngine.getState());
                     setGameStatus('MATCHMAKING');
 
-                    socket.emit("join_private_ttt", { room_id: roomId, profile: { username: myProfile.username, avatar_url: myProfile.avatar_url } });
+                    const joinFn = () => socket.emit("join_private_ttt", { room_id: roomId, profile: { username: myProfile.username, avatar_url: myProfile.avatar_url } });
+                    if (socket.connected) joinFn();
+                    else { socket.connect(); socket.once("connect", joinFn); }
                 })
             } else {
                 setMessage('Insufficient balance to join!');

@@ -186,6 +186,8 @@ async def handle_join_room(sid, data):
     if room_id in rooms:
         await join_blackjack_room(sid, room_id, profile)
         await broadcast_room_list()
+    else:
+        await sio.emit("error", {"message": "Table closed or invalid room link."}, to=sid)
 
 async def join_blackjack_room(sid, room_id, profile):
     room = rooms[room_id]

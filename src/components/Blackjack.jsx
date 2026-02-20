@@ -82,7 +82,10 @@ const Blackjack = () => {
             navigate('/play/blackjack', { replace: true, state: {} });
             if (userBalance >= currentBet) {
                 setIsOnline(true);
-                socket.emit("join_room", { room_id: roomId, profile: myProfile });
+                setGameStatus("JOINING");
+                const joinFn = () => socket.emit("join_room", { room_id: roomId, profile: myProfile });
+                if (socket.connected) joinFn();
+                else { socket.connect(); socket.once("connect", joinFn); }
             } else {
                 setMessage('Insufficient balance to join!');
             }
@@ -360,14 +363,16 @@ const Blackjack = () => {
                                                     <div className="h-full bg-emerald-500" style={{ width: `${(room.players / room.max_players) * 100}%` }} />
                                                 </div>
                                             </button>
-                                            {/* Admin Delete Button - visible if user email is specific admin (or for all in dev) */}
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); socket.emit("delete_room", { room_id: room.id }); }}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-xs shadow-lg hover:scale-110"
-                                                title="Delete Table"
-                                            >
-                                                X
-                                            </button>
+                                            {/* Admin Delete Button - visible if user email is specific admin */}
+                                            {user?.email === 'am2007144@gmail.com' && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); socket.emit("delete_room", { room_id: room.id }); }}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-xs shadow-lg hover:scale-110"
+                                                    title="Delete Table"
+                                                >
+                                                    X
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -389,6 +394,21 @@ const Blackjack = () => {
                                 BACK TO LOBBY
                             </button>
                             {message && <p className="text-red-400 font-bold uppercase tracking-widest">{message}</p>}
+                        </div>
+                    )}
+
+                    {gameStatus === 'JOINING' && (
+                        <div className="text-center space-y-10 animate-in fade-in zoom-in w-full max-w-md my-auto">
+                            <div className="relative w-40 h-40 mx-auto flex flex-col items-center justify-center">
+                                <div className="absolute inset-0 border-4 border-emerald-500/10 rounded-full"></div>
+                                <div className="absolute inset-0 border-4 border-t-emerald-500 rounded-full animate-spin"></div>
+                                <div className="absolute inset-0 flex items-center justify-center text-5xl">📡</div>
+                            </div>
+                            <div className="space-y-4">
+                                <p className="text-3xl font-black italic tracking-widest text-emerald-400">CONNECTING...</p>
+                                <p className="text-sm text-gray-400">{message || "Establishing secure table uplink"}</p>
+                            </div>
+                            <button onClick={() => { setGameStatus('MODE_SELECT'); setMessage(''); }} className="px-8 py-3 glass pill text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 hover:text-red-400 border-red-500/10 transition-all">Abort Join</button>
                         </div>
                     )}
 
