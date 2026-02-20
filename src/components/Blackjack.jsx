@@ -63,7 +63,8 @@ const Blackjack = () => {
     // Invite Modal
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const hasAutoJoined = useRef(false);
-
+    const lastResolvedRoundRef = useRef(null);
+    const roundIdRef = useRef(0);
     const fetchProfile = useCallback(async () => {
         if (!user) return;
         const { data } = await supabase.from('profiles').select('coin_balance, username, avatar_url').eq('id', user.id).single();
@@ -123,6 +124,7 @@ const Blackjack = () => {
                     supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id).then(() => {
                         setUserBalance(newBalance);
                         socket.emit("bj_place_bet", { room_id: data.room_id, bet: currentBet });
+                        setHasPlacedBet(true); // Added this to prevent "double button" or re-prompt
                     });
                     return 'PLAYING';
                 }
@@ -147,15 +149,19 @@ const Blackjack = () => {
             if (data.status === "PLAYING") {
                 setHasPlacedBet(false);
                 setIsWaitingForNextRound(false);
+                // Increment round ID when a new round starts
+                roundIdRef.current = (roundIdRef.current || 0) + 1;
             }
 
             if (data.status === "FINISHED") {
                 const me = data.players.find(p => p.sid === socket.id);
-                if (me) {
+                // Only resolve if we haven't resolved this specific round yet
+                if (me && lastResolvedRoundRef.current !== roundIdRef.current) {
                     const dScore = engine._calculateScore({ cards: dealerCards });
                     resolveOnlineGameOver(me, dScore);
+                    lastResolvedRoundRef.current = roundIdRef.current;
+                    setIsWaitingForNextRound(true);
                 }
-                setIsWaitingForNextRound(true);
             }
         });
 
