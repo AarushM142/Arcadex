@@ -289,7 +289,8 @@ const Blackjack = () => {
     };
 
     const activeHand = getActiveHand();
-    const isMyTurn = gameStatus === 'PLAYING' && players[turnIndex] && (players[turnIndex].sid === socket.id || players[turnIndex].sid === 'local');
+    const isPlayingHand = activeHand && activeHand.score < 21 && activeHand.status !== "BUST" && activeHand.status !== "BLACKJACK";
+    const isMyTurn = gameStatus === 'PLAYING' && players[turnIndex] && (players[turnIndex].sid === socket.id || players[turnIndex].sid === 'local') && !isWaitingForNextRound && isPlayingHand;
     const canSplit = isMyTurn && activeHand && activeHand.cards.length === 2 && (activeHand.cards[0] % 13 === activeHand.cards[1] % 13);
     const canDouble = isMyTurn && activeHand && activeHand.cards.length === 2;
 
@@ -414,27 +415,40 @@ const Blackjack = () => {
 
                             {/* Post-Round Actions - Non-blocking UI */}
                             {isWaitingForNextRound && (
-                                <div className="fixed bottom-0 left-0 right-0 z-50 p-6 flex justify-center animate-in slide-in-from-bottom-full duration-500 pointer-events-none">
-                                    <div className="glass-strong bg-black/80 backdrop-blur-xl rounded-3xl p-6 border border-emerald-500/30 shadow-[0_-10px_50px_rgba(0,0,0,0.5)] pointer-events-auto flex flex-col md:flex-row items-center gap-8 min-w-[600px] justify-between">
+                                <div className="fixed bottom-0 left-0 right-0 z-[300] p-6 flex justify-center animate-in slide-in-from-bottom-full duration-500 pointer-events-none">
+                                    <div className="glass-strong bg-black/80 backdrop-blur-xl rounded-3xl p-6 border border-emerald-500/30 shadow-[0_-10px_50px_rgba(0,0,0,0.5)] pointer-events-auto flex flex-col md:flex-row items-center gap-6 max-w-4xl justify-between">
 
-                                        <div className="text-left">
+                                        <div className="text-left flex-1">
                                             <h2 className={`text-4xl font-black italic tracking-tighter uppercase ${message.includes('WON') ? 'text-emerald-400' : 'text-white'}`}>{message || "Round Over"}</h2>
-                                            <div className="flex gap-2 mt-2">
+                                            <div className="flex flex-wrap items-center gap-2 mt-4">
                                                 {[10, 50, 100, 500].map(amt => (
                                                     <button key={amt} onClick={() => setCurrentBet(amt)}
-                                                        className={`w-10 h-10 rounded-lg font-black text-xs border transition-all ${currentBet === amt ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}>
+                                                        className={`h-10 px-3 min-w-[40px] rounded-lg font-black text-xs border transition-all ${currentBet === amt ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10'}`}>
                                                         {amt}
                                                     </button>
                                                 ))}
-                                                <span className="text-[10px] font-bold text-white/30 self-center ml-2">NEXT BET</span>
+                                                <button onClick={() => setCurrentBet(userBalance)}
+                                                    className={`h-10 px-4 rounded-lg font-black text-xs border transition-all ${currentBet === userBalance ? 'bg-emerald-500 border-emerald-400 text-black' : 'bg-white/5 border-white/10 text-emerald-400 hover:bg-white/10'}`}>
+                                                    ALL IN
+                                                </button>
+                                                <div className="relative flex items-center h-10 ml-2">
+                                                    <span className="absolute left-3 text-white/50 text-xs font-bold">$</span>
+                                                    <input
+                                                        type="number"
+                                                        value={currentBet}
+                                                        onChange={(e) => setCurrentBet(Math.max(0, parseInt(e.target.value) || 0))}
+                                                        className="w-24 h-full bg-black/50 border border-white/10 rounded-lg pl-7 pr-3 text-xs font-black text-white focus:outline-none focus:border-emerald-500"
+                                                        placeholder="Custom"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-3">
+                                        <div className="flex gap-3 mt-4 md:mt-0">
                                             <button onClick={handleNextRound} className="px-8 py-4 bg-white hover:bg-emerald-400 text-black font-black rounded-xl transition-all text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1">
                                                 Deal Again
                                             </button>
-                                            <button onClick={() => setGameStatus('MODE_SELECT')} className="px-6 py-4 glass hover:bg-red-500/20 text-white/60 hover:text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all">
+                                            <button onClick={() => { setGameStatus('MODE_SELECT'); setMessage(''); }} className="px-6 py-4 glass hover:bg-red-500/20 text-white/60 hover:text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all">
                                                 Leave
                                             </button>
                                         </div>

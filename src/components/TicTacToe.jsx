@@ -164,13 +164,13 @@ const TicTacToe = () => {
         if (finalState.winner === mySymbol || (!isOnline && !isAI && finalState.winner === Player.X)) {
             winAmount = (isAI || isOnline) ? 10 : 0;
             sessionResult = 'win';
-            setMessage(isOnline ? 'VICTORY!' : (isAI ? 'YOU BEAT THE AI!' : 'PLAYER X WINS!'));
+            setMessage(`${myProfile.username.toUpperCase()} HAS WON!`);
         } else if (finalState.winner === 3) {
             winAmount = (isAI || isOnline) ? 5 : 0;
             sessionResult = 'push';
             setMessage('DRAW!');
         } else {
-            setMessage(isOnline ? 'DEFEAT!' : (isAI ? 'AI WINS!' : 'PLAYER O WINS!'));
+            setMessage(`${myProfile.username.toUpperCase()} HAS LOST!`);
         }
 
         if ((isAI || isOnline) && winAmount > 0) {
