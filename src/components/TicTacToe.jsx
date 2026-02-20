@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TicTacToeEngine, GameMode, Player } from '../engines/tictactoeEngine';
 import { UserAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
 import { AppShell } from './AppShell';
 import { socket, joinGameRoom, sendMove } from '../socket';
+import InviteModal from './InviteModal';
 
 const TicTacToe = () => {
     const { user } = UserAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [engine, setEngine] = useState(null);
     const [gameState, setGameState] = useState(null);
     const [gameStatus, setGameStatus] = useState('SETUP');
@@ -21,6 +23,8 @@ const TicTacToe = () => {
     const [onlineRoom, setOnlineRoom] = useState(null);
     const [mySymbol, setMySymbol] = useState(null);
     const [opponentProfile, setOpponentProfile] = useState(null);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const hasAutoJoined = useRef(false);
 
     const fetchProfileData = useCallback(async () => {
         if (!user) return;
@@ -42,12 +46,38 @@ const TicTacToe = () => {
         fetchProfileData();
     }, [fetchProfileData]);
 
+    useEffect(() => {
+        if (myProfile.username && location.state?.autoJoin && !hasAutoJoined.current) {
+            hasAutoJoined.current = true;
+            const roomId = location.state.autoJoin;
+            navigate('/tictactoe', { replace: true, state: {} });
+
+            if (userBalance >= 5) {
+                // deduct 5 coins
+                const newBalance = userBalance - 5;
+                supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id).then(() => {
+                    setUserBalance(newBalance);
+
+                    const newEngine = new TicTacToeEngine(GameMode.ONLINE_PVP);
+                    setEngine(newEngine);
+                    setGameState(newEngine.getState());
+                    setGameStatus('MATCHMAKING');
+
+                    socket.emit("join_private_ttt", { room_id: roomId, profile: { username: myProfile.username, avatar_url: myProfile.avatar_url } });
+                })
+            } else {
+                setMessage('Insufficient balance to join!');
+            }
+        }
+    }, [myProfile, location.state, navigate, userBalance]);
+
     // Socket Listeners
     useEffect(() => {
         if (!socket) return;
 
         socket.on("waiting_for_opponent", (data) => {
             setMessage(data.message || "Waiting for opponent...");
+            if (data.room_id) setOnlineRoom(data.room_id);
         });
 
         socket.on("match_start", (data) => {
@@ -80,7 +110,7 @@ const TicTacToe = () => {
     const startGame = async (mode) => {
         const entryFee = 5;
         const isAI = mode === GameMode.PV_AI;
-        const isOnline = mode === GameMode.ONLINE_PVP;
+        const isOnline = mode === GameMode.ONLINE_PVP || mode === 'PRIVATE';
 
         if ((isAI || isOnline) && userBalance < entryFee) {
             setMessage('Insufficient coins! Need 5 to play.');
@@ -99,25 +129,37 @@ const TicTacToe = () => {
                 setUserBalance(newBalance);
             }
 
-            const newEngine = new TicTacToeEngine(mode);
+            const newEngine = new TicTacToeEngine(isOnline ? GameMode.ONLINE_PVP : mode);
             setEngine(newEngine);
             setGameState(newEngine.getState());
 
             if (isOnline) {
                 setGameStatus('MATCHMAKING');
-                setMessage("Finding an opponent...");
-                const emitRequest = () => {
-                    socket.emit("request_match", {
-                        profile: {
-                            username: myProfile.username,
-                            avatar_url: myProfile.avatar_url
-                        }
-                    });
-                };
-                if (socket.connected) emitRequest();
-                else {
-                    socket.connect();
-                    socket.once("connect", emitRequest);
+                if (mode === 'PRIVATE') {
+                    setMessage("Creating private room...");
+                    const emitPrivateRequest = () => {
+                        socket.emit("create_private_ttt", { profile: myProfile });
+                    };
+                    if (socket.connected) emitPrivateRequest();
+                    else {
+                        socket.connect();
+                        socket.once("connect", emitPrivateRequest);
+                    }
+                } else {
+                    setMessage("Finding an opponent...");
+                    const emitRequest = () => {
+                        socket.emit("request_match", {
+                            profile: {
+                                username: myProfile.username,
+                                avatar_url: myProfile.avatar_url
+                            }
+                        });
+                    };
+                    if (socket.connected) emitRequest();
+                    else {
+                        socket.connect();
+                        socket.once("connect", emitRequest);
+                    }
                 }
             } else {
                 setGameStatus('PLAYING');
@@ -222,7 +264,14 @@ const TicTacToe = () => {
                                 <p className="text-[10px] text-cyan-400 font-bold tracking-[0.4em] uppercase opacity-70">Multiplayer Cluster v2.0</p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+                                <button onClick={() => startGame('PRIVATE')} className="p-8 glass-strong group hover:scale-[1.02] transition-all rounded-3xl border border-pink-500/20 flex flex-col items-center gap-4 text-center">
+                                    <div className="w-16 h-16 rounded-2xl bg-pink-500/10 flex items-center justify-center text-3xl group-hover:bg-pink-500 group-hover:text-black transition-colors">🤝</div>
+                                    <div>
+                                        <span className="block font-black text-lg text-pink-400">PLAY WITH FRIEND</span>
+                                        <span className="text-[10px] text-pink-400/70 font-bold uppercase underline">Invite to Private Room</span>
+                                    </div>
+                                </button>
                                 <button onClick={() => startGame(GameMode.ONLINE_PVP)} className="p-8 glass-strong group hover:scale-[1.02] transition-all rounded-3xl border border-cyan-500/20 flex flex-col items-center gap-4 text-center">
                                     <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 flex items-center justify-center text-3xl group-hover:bg-cyan-500 group-hover:text-black transition-colors">🌐</div>
                                     <div>
@@ -234,7 +283,7 @@ const TicTacToe = () => {
                                     <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-3xl group-hover:bg-white group-hover:text-black transition-colors">🤖</div>
                                     <div>
                                         <span className="block font-black text-lg">VS AI ENGINE</span>
-                                        <span className="text-[10px] text-muted font-bold uppercase underline decoration-purple-500">Unbeatable Minimax</span>
+                                        <span className="text-[10px] text-muted font-bold uppercase decoration-purple-500">Unbeatable Minimax</span>
                                     </div>
                                 </button>
                                 <button onClick={() => startGame(GameMode.PVP)} className="p-8 glass group hover:scale-[1.02] transition-all rounded-3xl border border-white/5 flex flex-col items-center gap-4 text-center">
@@ -250,14 +299,20 @@ const TicTacToe = () => {
 
                     {gameStatus === 'MATCHMAKING' && (
                         <div className="text-center space-y-10 animate-in fade-in zoom-in w-full max-w-md">
-                            <div className="relative w-40 h-40 mx-auto">
+                            <div className="relative w-40 h-40 mx-auto flex flex-col items-center justify-center">
                                 <div className="absolute inset-0 border-4 border-cyan-500/10 rounded-full"></div>
                                 <div className="absolute inset-0 border-4 border-t-cyan-500 rounded-full animate-spin"></div>
                                 <div className="absolute inset-0 flex items-center justify-center text-5xl">📡</div>
                             </div>
-                            <div className="space-y-2">
-                                <h1 className="text-4xl font-black italic tracking-tighter uppercase">Initializing Link...</h1>
-                                <p className="text-cyan-400 text-xs font-bold tracking-widest uppercase animate-pulse">{message}</p>
+                            <div className="space-y-4">
+                                <p className="text-3xl font-black italic tracking-widest text-cyan-400">SEARCHING...</p>
+                                <p className="text-sm text-gray-400">{message}</p>
+
+                                {onlineRoom && (
+                                    <button onClick={() => setIsInviteModalOpen(true)} className="mt-8 px-8 py-3 bg-pink-500/20 hover:bg-pink-500 text-pink-400 hover:text-white font-black rounded-xl transition-all border border-pink-500/50 shadow-lg text-sm group flex items-center gap-2 justify-center w-full">
+                                        <span className="text-xl group-hover:scale-110 transition-transform">👥</span> INVITE FRIEND
+                                    </button>
+                                )}
                             </div>
                             <button onClick={() => setGameStatus('SETUP')} className="px-8 py-3 glass pill text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 hover:text-red-400 border-red-500/10 transition-all">Abort Search</button>
                         </div>
@@ -338,6 +393,13 @@ const TicTacToe = () => {
                         </div>
                     )}
                 </div>
+
+                <InviteModal
+                    isOpen={isInviteModalOpen}
+                    onClose={() => setIsInviteModalOpen(false)}
+                    gameName="tictactoe"
+                    roomId={onlineRoom}
+                />
             </div>
         </AppShell>
     );

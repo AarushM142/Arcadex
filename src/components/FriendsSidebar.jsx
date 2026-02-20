@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { UserAuth } from '../context/AuthContext';
 
 const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
     const { user } = UserAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('friends'); // 'friends', 'requests', 'search'
     const [friends, setFriends] = useState([]);
     const [requests, setRequests] = useState([]);
@@ -262,10 +264,35 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {messages.map(msg => {
                             const isMe = msg.sender_id === user?.id;
+
+                            const isInvite = msg.content.startsWith('[INVITE]');
+                            let inviteGame = '';
+                            let inviteRoom = '';
+                            if (isInvite) {
+                                const parts = msg.content.split(' ');
+                                inviteGame = parts[1]?.split(':')[1];
+                                inviteRoom = parts[2]?.split(':')[1];
+                            }
+
                             return (
                                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[80%] rounded-2xl p-3 text-sm ${isMe ? 'bg-cyan-500 text-black rounded-tr-sm' : 'bg-white/10 text-white rounded-tl-sm'}`}>
-                                        {msg.content}
+                                        {isInvite ? (
+                                            <div className="flex flex-col gap-2">
+                                                <div className="font-bold">Let's play {inviteGame}!</div>
+                                                <button
+                                                    onClick={() => {
+                                                        onClose();
+                                                        navigate(`/${inviteGame}`, { state: { autoJoin: inviteRoom } });
+                                                    }}
+                                                    className={`px-4 py-2 rounded-lg font-black uppercase text-xs transition-colors ${isMe ? 'bg-black text-cyan-400 hover:bg-black/80' : 'bg-cyan-500 text-black hover:bg-cyan-400'}`}
+                                                >
+                                                    {isMe ? 'TICKET SENT' : 'JOIN GAME'}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            msg.content
+                                        )}
                                     </div>
                                 </div>
                             );

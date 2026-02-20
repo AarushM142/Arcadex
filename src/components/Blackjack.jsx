@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BlackjackEngine } from '../engines/blackjackEngine';
 import { UserAuth } from '../context/AuthContext';
 import { supabase } from '../supabaseClient';
 import { AppShell } from './AppShell';
 import { socket } from '../socket';
+import InviteModal from './InviteModal';
 
 const CARD_SUITS = ['♠', '♣', '♥', '♦'];
 const CARD_RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -38,6 +39,7 @@ const Avatar = ({ src, name, size = "w-10 h-10" }) => (
 const Blackjack = () => {
     const { user } = UserAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [engine] = useState(() => new BlackjackEngine());
     const [gameStatus, setGameStatus] = useState('MODE_SELECT');
     const [message, setMessage] = useState('');
@@ -57,6 +59,10 @@ const Blackjack = () => {
     const [availableRooms, setAvailableRooms] = useState([]);
     const [showRoomBrowser, setShowRoomBrowser] = useState(false);
 
+    // Invite Modal
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const hasAutoJoined = useRef(false);
+
     const fetchProfile = useCallback(async () => {
         if (!user) return;
         const { data } = await supabase.from('profiles').select('coin_balance, username, avatar_url').eq('id', user.id).single();
@@ -67,6 +73,21 @@ const Blackjack = () => {
     }, [user]);
 
     useEffect(() => { fetchProfile(); }, [fetchProfile]);
+
+    useEffect(() => {
+        if (myProfile.username && location.state?.autoJoin && !hasAutoJoined.current) {
+            hasAutoJoined.current = true;
+            const roomId = location.state.autoJoin;
+            // Clear location state so refresh doesn't auto join again
+            navigate('/blackjack', { replace: true, state: {} });
+            if (userBalance >= currentBet) {
+                setIsOnline(true);
+                socket.emit("join_room", { room_id: roomId, profile: myProfile });
+            } else {
+                setMessage('Insufficient balance to join!');
+            }
+        }
+    }, [myProfile, location.state, navigate, userBalance, currentBet]);
 
     useEffect(() => {
         if (!socket) return;
@@ -455,6 +476,11 @@ const Blackjack = () => {
                                         </div>
 
                                         <div className="flex gap-3 mt-4 md:mt-0">
+                                            {isOnline && onlineRoom && (
+                                                <button onClick={() => setIsInviteModalOpen(true)} className="px-6 py-4 bg-cyan-500/20 hover:bg-cyan-500 text-cyan-400 hover:text-black font-black rounded-xl transition-all text-xs uppercase tracking-widest border border-cyan-500/50 shadow-lg hover:-translate-y-1 group">
+                                                    <span className="hidden md:inline mr-2">👥</span> Invite
+                                                </button>
+                                            )}
                                             <button onClick={handleNextRound} className="px-8 py-4 bg-white hover:bg-emerald-400 text-black font-black rounded-xl transition-all text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1">
                                                 Deal Again
                                             </button>
@@ -480,6 +506,13 @@ const Blackjack = () => {
                         </div>
                     </div>
                 )}
+
+                <InviteModal
+                    isOpen={isInviteModalOpen}
+                    onClose={() => setIsInviteModalOpen(false)}
+                    gameName="blackjack"
+                    roomId={onlineRoom}
+                />
             </div>
         </AppShell>
     );

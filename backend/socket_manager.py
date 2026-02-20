@@ -102,6 +102,35 @@ async def handle_request_match(sid, data):
         await sio.emit("match_start", {"room_id": room_id, "symbol": 1, "opponent": profile}, to=opponent['sid'])
         await sio.emit("match_start", {"room_id": room_id, "symbol": 2, "opponent": opponent['profile']}, to=sid)
 
+@sio.on("create_private_ttt")
+async def handle_create_private(sid, data):
+    profile = data.get("profile", {"username": "Anonymous", "avatar_url": ""})
+    room_id = f"ttt_{uuid.uuid4().hex[:8]}"
+    rooms[room_id] = {
+        "type": "tictactoe_private",
+        "players": [{"sid": sid, "profile": profile}]
+    }
+    await sio.enter_room(sid, room_id)
+    await sio.emit("waiting_for_opponent", {"message": "Waiting for friend to join...", "room_id": room_id}, to=sid)
+
+@sio.on("join_private_ttt")
+async def handle_join_private(sid, data):
+    room_id = data.get("room_id")
+    profile = data.get("profile", {"username": "Anonymous", "avatar_url": ""})
+    if room_id in rooms and rooms[room_id]["type"] == "tictactoe_private":
+        room = rooms[room_id]
+        if len(room["players"]) == 1:
+            opponent = room["players"][0]
+            await sio.enter_room(sid, room_id)
+            room["players"].append({"sid": sid, "profile": profile})
+            await sio.emit("match_start", {"room_id": room_id, "symbol": 1, "opponent": profile}, to=opponent['sid'])
+            await sio.emit("match_start", {"room_id": room_id, "symbol": 2, "opponent": opponent['profile']}, to=sid)
+            del rooms[room_id] # Clean up
+        else:
+            await sio.emit("error", {"message": "Room is full or no longer available"}, to=sid)
+    else:
+        await sio.emit("error", {"message": "Invalid room"}, to=sid)
+
 # --- Blackjack Room Logic ---
 
 @sio.on("get_rooms")
