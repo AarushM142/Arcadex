@@ -50,27 +50,39 @@ async def disconnect(sid, *args):
     # Cleanup rooms
     # Create a copy of keys to iterate safely
     for rid in list(rooms.keys()):
-        if rid not in rooms: continue # prevent race condition KeyErrors
-        room = rooms[rid]
-        players = room.get('players', [])
-        current_player = next((p for p in players if p['sid'] == sid), None)
+        await remove_player_from_room(sid, rid)
+
+    # Broadcast updated room list to everyone searching for rooms
+    await broadcast_room_list()
+
+@sio.on("leave_room")
+async def handle_leave_room(sid, data):
+    room_id = data.get("room_id")
+    await remove_player_from_room(sid, room_id)
+    await broadcast_room_list()
+
+async def remove_player_from_room(sid, rid):
+    if rid not in rooms: return
+    room = rooms[rid]
+    players = room.get('players', [])
+    current_player = next((p for p in players if p['sid'] == sid), None)
+    
+    if current_player:
+        room['players'] = [p for p in players if p['sid'] != sid]
+        await sio.leave_room(sid, rid)
+        await sio.emit("player_disconnected", {
+            "sid": sid, 
+            "username": current_player['profile'].get('username', 'Someone')
+        }, room=rid)
         
-        if current_player:
-            room['players'] = [p for p in players if p['sid'] != sid]
-            await sio.emit("player_disconnected", {
-                "sid": sid, 
-                "username": current_player['profile'].get('username', 'Someone')
-            }, room=rid)
-            
-            if not room['players']:
-                # Double check before delete
-                if rid in rooms: del rooms[rid]
-            else:
-                if room.get('type') == 'blackjack' and room.get('status') == 'PLAYING':
-                    if room['turn_index'] >= len(room['players']):
-                        await dealer_play(rid)
-                    else:
-                        await emit_update(rid)
+        if not room['players']:
+            if rid in rooms: del rooms[rid]
+        else:
+            if room.get('type') == 'blackjack' and room.get('status') == 'PLAYING':
+                if room['turn_index'] >= len(room['players']):
+                    await dealer_play(rid)
+                else:
+                    await emit_update(rid)
 
     # Broadcast updated room list to everyone searching for rooms
     await broadcast_room_list()

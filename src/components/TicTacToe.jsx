@@ -355,6 +355,18 @@ const TicTacToe = () => {
                                 </div>
                             </div>
 
+                            {/* Turn Indicator */}
+                            <div className="flex items-center gap-3 px-6 py-2 bg-white/5 rounded-full border border-white/5 animate-pulse">
+                                <div className={`w-2 h-2 rounded-full ${gameState.currentPlayer === Player.X ? 'bg-cyan-500' : 'bg-purple-500'} shadow-[0_0_10px_currentColor]`} />
+                                <span className="text-[10px] font-black tracking-[0.2em] uppercase">
+                                    {engine.gameMode === GameMode.ONLINE_PVP ? (
+                                        gameState.currentPlayer === mySymbol ? "YOUR TURN" : `${opponentProfile?.username || 'OPPONENT'}'S TURN`
+                                    ) : (
+                                        gameState.currentPlayer === Player.X ? "PLAYER 1'S TURN (X)" : "PLAYER 2'S TURN (O)"
+                                    )}
+                                </span>
+                            </div>
+
                             {/* Game Board */}
                             <div className="grid grid-cols-3 gap-3 p-4 glass-strong rounded-[2.5rem] border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                                 {gameState.board.map((cell, i) => (

@@ -172,6 +172,9 @@ const Blackjack = () => {
         });
 
         return () => {
+            if (isOnline && onlineRoom) {
+                socket.emit("leave_room", { room_id: onlineRoom });
+            }
             socket.off("waiting_for_opponent");
             socket.off("room_list_update");
             socket.off("error");
@@ -180,7 +183,7 @@ const Blackjack = () => {
             socket.off("player_joined");
             socket.off("player_disconnected");
         };
-    }, [currentBet, engine, userBalance, user]);
+    }, [currentBet, engine, userBalance, user, isOnline, onlineRoom]);
 
     const resolveOnlineGameOver = async (myPlayerObj, dealerScore) => {
         let totalWin = 0;
@@ -441,6 +444,11 @@ const Blackjack = () => {
                         <div className="flex-1 flex flex-col items-center gap-4 md:gap-8 z-10 w-full">
                             {/* Dealer */}
                             <div className="flex flex-col items-center gap-2 md:gap-4">
+                                <div className="text-[10px] font-black tracking-[0.3em] text-white/30 uppercase mb-2">
+                                    {gameStatus === 'PLAYING' && players[turnIndex] && (
+                                        <span>Turn: <span className="text-emerald-400">{(players[turnIndex].sid === socket.id || players[turnIndex].sid === 'local') ? 'YOURS' : players[turnIndex].profile.username.toUpperCase()}</span></span>
+                                    )}
+                                </div>
                                 <div className="flex items-center gap-2 md:gap-3 bg-black/40 px-4 py-1 md:px-6 md:py-2 rounded-full border border-white/5">
                                     <Avatar src="" name="D" size="w-8 h-8 md:w-10 md:h-10" />
                                     <span className="text-xs md:text-sm font-black tracking-widest text-emerald-400">HOUSE</span>
@@ -544,7 +552,13 @@ const Blackjack = () => {
                                                     Deal Again
                                                 </button>
                                             )}
-                                            <button onClick={() => { setGameStatus('MODE_SELECT'); setMessage(''); }} className="px-6 py-4 glass hover:bg-red-500/20 text-white/60 hover:text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all">
+                                            <button onClick={() => {
+                                                if (isOnline && onlineRoom) {
+                                                    socket.emit("leave_room", { room_id: onlineRoom });
+                                                }
+                                                setGameStatus('MODE_SELECT');
+                                                setMessage('');
+                                            }} className="px-6 py-4 glass hover:bg-red-500/20 text-white/60 hover:text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all">
                                                 Leave
                                             </button>
                                         </div>
