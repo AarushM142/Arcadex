@@ -217,14 +217,23 @@ async def join_blackjack_room(sid, room_id, profile):
         "active_hand_index": 0
     })
     
-    # Notify everyone in the room
+    # Sync state for the new joiner
     await sio.emit("bj_match_start", {
         "room_id": room_id, "players": [
             {"username": p['profile']['username'], "avatar_url": p['profile']['avatar_url'], "sid": p['sid']}
             for p in room['players']
         ]
-    }, room=room_id)
+    }, to=sid)
 
+    # Notify others that someone joined
+    await sio.emit("player_joined", {
+        "profile": profile,
+        "sid": sid
+    }, room=room_id, skip_sid=sid)
+
+    # Sync state for everyone
+    await emit_update(room_id)
+    return
     # Sync state for the new joiner if game is in progress (observer mode essentially until next round)
     if room['status'] != "BETTING":
         await emit_update(room_id)
@@ -248,6 +257,10 @@ async def handle_bj_bet(sid, data):
         return
     room = rooms[room_id]
     
+    if room['status'] == "PLAYING":
+        await sio.emit("error", {"message": "Game in progress. Wait for next round."}, to=sid)
+        return
+        
     all_bets_placed = True
     for p in room['players']:
         if p['sid'] == sid:
@@ -365,13 +378,15 @@ async def handle_bj_action(sid, data):
 
 async def next_turn(room_id):
     room = rooms[room_id]
+    if room['turn_index'] >= len(room['players']):
+        await dealer_play(room_id)
+        return
+
     active_player = room['players'][room['turn_index']]
     
     # Move to next hand if available
     if active_player['active_hand_index'] < len(active_player['hands']) - 1:
         active_player['active_hand_index'] += 1
-        # Check if next hand is already done (e.g. from aces split or something, though simplified here)
-        # For now, assume always playing
         await emit_update(room_id)
     else:
         # Move to next player
@@ -379,9 +394,9 @@ async def next_turn(room_id):
         if room['turn_index'] >= len(room['players']):
             await dealer_play(room_id)
         else:
-            # Check if next player has blackjack
             next_p = room['players'][room['turn_index']]
-            if next_p['hands'][0]['status'] == "BLACKJACK":
+            # Skip players with no hands or blackjack
+            if not next_p['hands'] or next_p['hands'][0]['status'] == "BLACKJACK":
                 await next_turn(room_id)
             else:
                 await emit_update(room_id)

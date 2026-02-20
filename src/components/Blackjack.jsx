@@ -109,20 +109,27 @@ const Blackjack = () => {
             setTimeout(() => setMessage(''), 3000);
         });
 
+        socket.on("player_joined", (data) => {
+            setMessage(`${data.profile.username} joined the table.`);
+            setTimeout(() => setMessage(''), 3000);
+        });
+
         socket.on("bj_match_start", (data) => {
             setOnlineRoom(data.room_id);
-            setGameStatus('PLAYING');
+            // Only set status and pay if we are not already playing
+            setGameStatus(prev => {
+                if (prev === 'MODE_SELECT') {
+                    const newBalance = userBalance - currentBet;
+                    supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id).then(() => {
+                        setUserBalance(newBalance);
+                        socket.emit("bj_place_bet", { room_id: data.room_id, bet: currentBet });
+                    });
+                    return 'PLAYING';
+                }
+                return prev;
+            });
             setShowRoomBrowser(false);
             setMessage("Joined Table! Placing bet...");
-
-            // Auto Bet on join logic is tricky if game in progress, but we handle start state in backend
-            // For now assume join = ready to play next hand or waiting
-
-            const newBalance = userBalance - currentBet;
-            supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id).then(() => {
-                setUserBalance(newBalance);
-                socket.emit("bj_place_bet", { room_id: data.room_id, bet: currentBet });
-            });
         });
 
         socket.on("bj_update", (data) => {
@@ -163,6 +170,7 @@ const Blackjack = () => {
             socket.off("error");
             socket.off("bj_match_start");
             socket.off("bj_update");
+            socket.off("player_joined");
             socket.off("player_disconnected");
         };
     }, [currentBet, engine, userBalance, user]);
