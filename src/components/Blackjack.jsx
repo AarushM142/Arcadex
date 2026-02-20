@@ -119,12 +119,13 @@ const Blackjack = () => {
             setOnlineRoom(data.room_id);
             // Only set status and pay if we are not already playing
             setGameStatus(prev => {
-                if (prev === 'MODE_SELECT') {
+                const isLobbyState = prev === 'MODE_SELECT' || prev === 'JOINING' || prev === 'BETTING';
+                if (isLobbyState) {
                     const newBalance = userBalance - currentBet;
                     supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id).then(() => {
                         setUserBalance(newBalance);
                         socket.emit("bj_place_bet", { room_id: data.room_id, bet: currentBet });
-                        setHasPlacedBet(true); // Added this to prevent "double button" or re-prompt
+                        setHasPlacedBet(true);
                     });
                     return 'PLAYING';
                 }
@@ -215,12 +216,14 @@ const Blackjack = () => {
     const joinRoom = (roomId) => {
         if (userBalance < currentBet) { setMessage('Insufficient balance!'); return; }
         setIsOnline(true);
+        setGameStatus('JOINING');
         socket.emit("join_room", { room_id: roomId, profile: myProfile });
     }
 
     const createRoom = () => {
         if (userBalance < currentBet) { setMessage('Insufficient balance!'); return; }
         setIsOnline(true);
+        setGameStatus('JOINING');
         const name = `${myProfile.username}'s Table`;
         socket.emit("create_room", { name, profile: myProfile });
     }
@@ -434,7 +437,7 @@ const Blackjack = () => {
                         </div>
                     )}
 
-                    {(gameStatus === 'PLAYING' || gameStatus === 'FINISHED') && (
+                    {(gameStatus === 'PLAYING' || gameStatus === 'FINISHED' || gameStatus === 'BETTING') && (
                         <div className="flex-1 flex flex-col items-center gap-4 md:gap-8 z-10 w-full">
                             {/* Dealer */}
                             <div className="flex flex-col items-center gap-2 md:gap-4">
