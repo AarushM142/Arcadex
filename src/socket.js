@@ -1,7 +1,10 @@
 import { io } from "socket.io-client";
 
-// Dynamic Socket URL for LAN/Localhost support
+// Dynamic Socket URL: Use Env Var if Present (Prod), otherwise discover LAN IP (Dev)
 const getSocketUrl = () => {
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (envUrl) return envUrl;
+
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.hostname;
     // Assume backend is always on port 8000 for dev
