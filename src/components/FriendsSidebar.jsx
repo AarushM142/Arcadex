@@ -49,32 +49,41 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
         }
     }, [isOpen, activeTab]);
 
+    const isOpenRef = useRef(isOpen);
+    useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+
     // Realtime Subscriptions
     useEffect(() => {
         if (!user) return;
 
-        const uid = Math.random().toString(36).substring(7);
-        const msgChannel = `messages_sync_${user.id}_${uid}`;
-        const friendChannel = `friends_sync_${user.id}_${uid}`;
+        const msgChannel = `messages_sync_${user.id}`;
+        const friendChannel = `friends_sync_${user.id}`;
 
         // Listen for new messages
         const msgSub = supabase.channel(msgChannel)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages'
+            }, (payload) => {
                 const newMsg = payload.new;
-                // If it's related to the current open chat, append it and mark as read
-                if (activeChat && (
-                    (newMsg.sender_id === user.id && newMsg.receiver_id === activeChat.id) ||
-                    (newMsg.sender_id === activeChat.id && newMsg.receiver_id === user.id)
-                )) {
-                    setMessages(prev => [...prev, newMsg]);
-                    if (newMsg.receiver_id === user.id && isOpen) {
+                // If it's related to the current open chat, append it 
+                if (activeChat && (newMsg.sender_id === activeChat.id || newMsg.sender_id === user.id)) {
+                    // Only append if it's from the person we're talking to or we sent it
+                    if (newMsg.sender_id === activeChat.id || newMsg.sender_id === user.id) {
+                        setMessages(prev => {
+                            // Quick check to avoid duplicates in case of weird racing
+                            if (prev.find(m => m.id === newMsg.id)) return prev;
+                            return [...prev, newMsg];
+                        });
+                    }
+
+                    if (newMsg.receiver_id === user.id && isOpenRef.current) {
                         markChatAsRead(newMsg.sender_id);
                     }
                 }
 
-                if (newMsg.receiver_id === user.id) {
-                    fetchUnread();
-                }
+                fetchUnread();
             }).subscribe();
 
         // Listen for friendship changes (new requests, accepts, etc)
@@ -88,7 +97,18 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
             supabase.removeChannel(msgSub);
             supabase.removeChannel(friendSub);
         };
-    }, [user, activeChat, isOpen]);
+    }, [user, activeChat]);
+
+    // Polling fallback for notifications
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (user) {
+                fetchUnread();
+                fetchRequests();
+            }
+        }, 15000);
+        return () => clearInterval(interval);
+    }, [user]);
 
     // Scroll to bottom of chat
     useEffect(() => {

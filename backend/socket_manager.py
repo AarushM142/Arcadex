@@ -251,10 +251,12 @@ async def handle_bj_bet(sid, data):
     all_bets_placed = True
     for p in room['players']:
         if p['sid'] == sid:
+            if p.get('status') == "READY": return # Guard against spam
             p['bet'] = bet
             p['status'] = "READY"
             p['hands'] = [] 
-        
+            # Re-fetch profile to ensure balance is synced if needed, but here we trust client bet
+            # deducting happened locally and in supabase task        
         # Check if everyone is ready (excluding people who might have joined mid-game if we allowed that logic, but here we keep it simple)
         if p['status'] != "READY":
             all_bets_placed = False

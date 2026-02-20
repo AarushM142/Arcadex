@@ -54,6 +54,7 @@ const Blackjack = () => {
     const [isOnline, setIsOnline] = useState(false);
     const [onlineRoom, setOnlineRoom] = useState(null);
     const [isWaitingForNextRound, setIsWaitingForNextRound] = useState(false);
+    const [hasPlacedBet, setHasPlacedBet] = useState(false);
 
     // New State for Room Browsing
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -136,6 +137,10 @@ const Blackjack = () => {
             setTurnIndex(data.turn_index);
             setGameStatus(data.status);
 
+            if (data.status === "PLAYING") {
+                setHasPlacedBet(false);
+                setIsWaitingForNextRound(false);
+            }
 
             if (data.status === "FINISHED") {
                 const me = data.players.find(p => p.sid === socket.id);
@@ -239,15 +244,18 @@ const Blackjack = () => {
     }
 
     const handleNextRound = async () => {
+        if (hasPlacedBet) return;
         if (userBalance < currentBet) { setMessage("Insufficient funds!"); return; }
-        setIsWaitingForNextRound(false);
+
         if (isOnline) {
+            setHasPlacedBet(true);
             const newBalance = userBalance - currentBet;
             await supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id);
             setUserBalance(newBalance);
             socket.emit("bj_place_bet", { room_id: onlineRoom, bet: currentBet });
             setMessage("Bet placed! Waiting...");
         } else {
+            setIsWaitingForNextRound(false);
             startLocalGame();
         }
     };
@@ -507,9 +515,18 @@ const Blackjack = () => {
                                                     <span className="hidden md:inline mr-2">👥</span> Invite
                                                 </button>
                                             )}
-                                            <button onClick={handleNextRound} className="px-8 py-4 bg-white hover:bg-emerald-400 text-black font-black rounded-xl transition-all text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1">
-                                                Deal Again
-                                            </button>
+                                            {hasPlacedBet ? (
+                                                <div className="px-8 py-4 bg-emerald-500/10 text-emerald-500 font-black rounded-xl text-sm uppercase tracking-widest border border-emerald-500/20 animate-pulse">
+                                                    Waiting for Others...
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={handleNextRound}
+                                                    className="px-8 py-4 bg-white hover:bg-emerald-400 text-black font-black rounded-xl transition-all text-sm uppercase tracking-widest shadow-lg hover:-translate-y-1"
+                                                >
+                                                    Deal Again
+                                                </button>
+                                            )}
                                             <button onClick={() => { setGameStatus('MODE_SELECT'); setMessage(''); }} className="px-6 py-4 glass hover:bg-red-500/20 text-white/60 hover:text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all">
                                                 Leave
                                             </button>
