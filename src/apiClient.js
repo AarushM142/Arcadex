@@ -1,4 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "/api";
+let API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
+if (API_BASE_URL && !API_BASE_URL.endsWith('/api')) {
+  API_BASE_URL = `${API_BASE_URL.replace(/\/$/, '')}/api`;
+} else if (!API_BASE_URL) {
+  API_BASE_URL = "/api";
+}
 
 async function withAuth(options = {}) {
   const headers = new Headers(options.headers || {});
