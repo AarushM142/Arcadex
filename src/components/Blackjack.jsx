@@ -163,7 +163,7 @@ const Blackjack = () => {
 
         await supabase.from('game_sessions').insert({
             user_id: user.id,
-            game_id: "blackjack_online",
+            game_id: "blackjack",
             coins_won: totalWin,
             result: totalWin > currentBet ? "win" : (totalWin > 0 ? "push" : "lose")
         });
@@ -280,6 +280,13 @@ const Blackjack = () => {
             setUserBalance(newBalance);
             setMessage(anyWin ? `WON ${totalWin} COINS!` : `PUSH! Coins returned.`);
         } else { setMessage("HOUSE WINS"); }
+
+        await supabase.from('game_sessions').insert({
+            user_id: user.id,
+            game_id: "blackjack",
+            coins_won: totalWin,
+            result: totalWin > currentBet ? "win" : (totalWin > 0 ? "push" : "lose")
+        });
     };
 
     const getActiveHand = () => {
@@ -357,6 +364,9 @@ const Blackjack = () => {
                                 <button onClick={openRoomBrowser} className="w-full md:w-64 py-6 md:py-8 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-3xl shadow-2xl transition-all active:scale-95 hover:-translate-y-2 text-xl relative z-30">🌐 BROWSE TABLES</button>
                                 <button onClick={startLocalGame} className="w-full md:w-64 py-6 md:py-8 glass hover:bg-white hover:text-black font-black rounded-3xl transition-all active:scale-95 hover:-translate-y-2 text-xl relative z-30">🤖 VS BOT</button>
                             </div>
+                            <button onClick={() => navigate('/dashboard')} className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all mt-4 border border-white/10">
+                                BACK TO LOBBY
+                            </button>
                             {message && <p className="text-red-400 font-bold uppercase tracking-widest">{message}</p>}
                         </div>
                     )}
