@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { UserAuth } from "../context/AuthContext";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { supabase } from "../supabaseClient";
+import FriendsSidebar from "./FriendsSidebar";
 
 const ADMIN_EMAIL = 'am2007144@gmail.com';
 
@@ -19,6 +20,8 @@ export function AppShell({ children }) {
   const [profile, setProfile] = useState({ username: '', avatar_url: '' });
   const [isBanned, setIsBanned] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [friendsSidebarOpen, setFriendsSidebarOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -293,6 +296,16 @@ export function AppShell({ children }) {
               </div>
             </div>
 
+            <button onClick={() => setFriendsSidebarOpen(true)} className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl glass hover:bg-white/10 transition-all border border-white/10 group relative">
+              <span className="text-lg md:text-xl group-hover:scale-110 transition-transform text-white/80 group-hover:text-cyan-400">👥</span>
+              <span className="text-sm font-bold text-white/80 group-hover:text-cyan-400 hidden sm:block">Friends</span>
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-lg border-2 border-black animate-in zoom-in">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => navigate('/profile')}
               className="flex items-center gap-3 p-1.5 pr-4 glass rounded-xl hover:bg-white/10 transition-all group"
@@ -318,6 +331,13 @@ export function AppShell({ children }) {
       <main className="relative z-10 mx-auto max-w-7xl px-4 py-6">
         {children}
       </main>
+
+      {/* Friends & Chat Sidebar */}
+      <FriendsSidebar
+        isOpen={friendsSidebarOpen}
+        onClose={() => setFriendsSidebarOpen(false)}
+        onNotificationChange={setNotificationCount}
+      />
     </div>
   );
 }
