@@ -261,6 +261,8 @@ async def handle_bj_bet(sid, data):
             
     if all_bets_placed and len(room['players']) > 0:
         await start_bj_round(room_id)
+    else:
+        await emit_update(room_id)
 
 async def start_bj_round(room_id):
     room = rooms[room_id]
@@ -400,7 +402,8 @@ async def emit_update(room_id):
                 "sid": p['sid'],
                 "profile": p['profile'],
                 "hands": p['hands'],
-                "active_hand_index": p['active_hand_index']
+                "active_hand_index": p['active_hand_index'],
+                "status": p.get('status')
             } for p in room['players']
         ],
         "dealer_hand": [room['dealer_hand'][0], -1] if room['status'] != "FINISHED" else room['dealer_hand'],

@@ -442,20 +442,26 @@ const Blackjack = () => {
 
                                         {/* Hands Container */}
                                         <div className="flex gap-2 md:gap-4 justify-center">
-                                            {p.hands.map((hand, hIdx) => (
-                                                <div key={hIdx} className={`flex flex-col items-center gap-1 md:gap-2 transition-opacity ${p.active_hand_index === hIdx ? 'opacity-100' : 'opacity-40'}`}>
-                                                    <div className="flex -space-x-6 md:-space-x-8">
-                                                        {hand.cards.map((c, cIdx) => (
-                                                            <div key={cIdx} className="transform hover:-translate-y-2 transition-transform" style={{ marginLeft: cIdx > 0 ? '' : '0' }}>
-                                                                <Card card={c} />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className={`text-[8px] md:text-[10px] font-black px-1.5 py-0.5 rounded ${hand.score > 21 ? 'bg-red-500 text-white' : 'bg-white/10 text-white/70'}`}>
-                                                        {hand.score}
-                                                    </div>
+                                            {p.status === 'READY' ? (
+                                                <div className="flex flex-col items-center justify-center h-20 md:h-24">
+                                                    <span className="text-emerald-400 font-black text-xs md:text-sm animate-pulse tracking-widest uppercase">READY</span>
                                                 </div>
-                                            ))}
+                                            ) : (
+                                                p.hands.map((hand, hIdx) => (
+                                                    <div key={hIdx} className={`flex flex-col items-center gap-1 md:gap-2 transition-opacity ${p.active_hand_index === hIdx ? 'opacity-100' : 'opacity-40'}`}>
+                                                        <div className="flex -space-x-6 md:-space-x-8">
+                                                            {hand.cards.map((c, cIdx) => (
+                                                                <div key={cIdx} className="transform hover:-translate-y-2 transition-transform" style={{ marginLeft: cIdx > 0 ? '' : '0' }}>
+                                                                    <Card card={c} />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div className={`text-[8px] md:text-[10px] font-black px-1.5 py-0.5 rounded ${hand.score > 21 ? 'bg-red-500 text-white' : 'bg-white/10 text-white/70'}`}>
+                                                            {hand.score}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                 ))}
