@@ -273,6 +273,7 @@ async def start_bj_round(room_id):
     
     # Deal initial hands
     for p in room['players']:
+        p['status'] = "PLAYING"
         p['hands'] = [{
             "cards": [],
             "bet": p['bet'],

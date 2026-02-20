@@ -47,12 +47,18 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
         if (isOpen && activeTab === 'requests') {
             setHasViewedRequests(true);
         }
-    }, [isOpen, activeTab]);    // Realtime Subscriptions
+    }, [isOpen, activeTab]);
+
+    // Realtime Subscriptions
     useEffect(() => {
         if (!user) return;
 
+        const uid = Math.random().toString(36).substring(7);
+        const msgChannel = `messages_sync_${user.id}_${uid}`;
+        const friendChannel = `friends_sync_${user.id}_${uid}`;
+
         // Listen for new messages
-        const msgSub = supabase.channel('public:messages')
+        const msgSub = supabase.channel(msgChannel)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
                 const newMsg = payload.new;
                 // If it's related to the current open chat, append it and mark as read
@@ -64,13 +70,15 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
                     if (newMsg.receiver_id === user.id && isOpen) {
                         markChatAsRead(newMsg.sender_id);
                     }
-                } else if (newMsg.receiver_id === user.id) {
+                }
+
+                if (newMsg.receiver_id === user.id) {
                     fetchUnread();
                 }
             }).subscribe();
 
         // Listen for friendship changes (new requests, accepts, etc)
-        const friendSub = supabase.channel('public:friendships')
+        const friendSub = supabase.channel(friendChannel)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => {
                 fetchFriends();
                 fetchRequests();
@@ -80,7 +88,7 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
             supabase.removeChannel(msgSub);
             supabase.removeChannel(friendSub);
         };
-    }, [user, activeChat]);
+    }, [user, activeChat, isOpen]);
 
     // Scroll to bottom of chat
     useEffect(() => {
