@@ -245,7 +245,7 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
 
             {/* If Chat is Open */}
             {activeChat ? (
-                <div className="flex-1 flex flex-col h-full bg-black/50">
+                <div className="flex-1 flex flex-col h-full bg-black/50 min-h-0">
                     <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
                         <div className="flex items-center gap-3">
                             <button onClick={() => setActiveChat(null)} className="text-white/50 hover:text-white text-xl">←</button>
