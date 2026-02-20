@@ -6,12 +6,7 @@ from typing import Dict, List
 # Create a Socket.IO server (ASGI version)
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "https://fycproj.vercel.app"
-    ]
+    cors_allowed_origins="*"
 )
 
 # Matchmaking Queues
@@ -46,14 +41,16 @@ async def connect(sid, environ, auth):
     print(f"Player Connected: {sid}")
 
 @sio.event
-async def disconnect(sid):
+async def disconnect(sid, *args):
     global tictactoe_queue, blackjack_queue
     print(f"Player Disconnected: {sid}")
     tictactoe_queue = [p for p in tictactoe_queue if p['sid'] != sid]
     blackjack_queue = [p for p in blackjack_queue if p['sid'] != sid]
     
     # Cleanup rooms
+    # Create a copy of keys to iterate safely
     for rid in list(rooms.keys()):
+        if rid not in rooms: continue # prevent race condition KeyErrors
         room = rooms[rid]
         players = room.get('players', [])
         current_player = next((p for p in players if p['sid'] == sid), None)
@@ -66,7 +63,8 @@ async def disconnect(sid):
             }, room=rid)
             
             if not room['players']:
-                del rooms[rid]
+                # Double check before delete
+                if rid in rooms: del rooms[rid]
             else:
                 if room.get('type') == 'blackjack' and room.get('status') == 'PLAYING':
                     if room['turn_index'] >= len(room['players']):
@@ -200,11 +198,23 @@ async def join_blackjack_room(sid, room_id, profile):
     if room['status'] != "BETTING":
         await emit_update(room_id)
 
+@sio.on("delete_room")
+async def handle_delete_room(sid, data):
+    room_id = data.get("room_id")
+    if room_id in rooms:
+        # Notify players
+        await sio.emit("error", {"message": "Table closed by admin"}, room=room_id)
+        # Update room list for everyone
+        del rooms[room_id]
+        await broadcast_room_list()
+
 @sio.on("bj_place_bet")
 async def handle_bj_bet(sid, data):
     room_id = data.get("room_id")
     bet = int(data.get("bet", 10))
-    if room_id not in rooms: return
+    if room_id not in rooms:
+        await sio.emit("error", {"message": "Room not found (expired?)"}, to=sid)
+        return
     room = rooms[room_id]
     
     all_bets_placed = True

@@ -78,6 +78,9 @@ const Blackjack = () => {
 
         socket.on("error", (data) => {
             setMessage(data.message);
+            if (data.message.includes("Room not found") || data.message.includes("Table closed")) {
+                setTimeout(() => setGameStatus('MODE_SELECT'), 2000);
+            }
             setTimeout(() => setMessage(''), 3000);
         });
 
@@ -311,22 +314,32 @@ const Blackjack = () => {
                                         <p className="text-sm text-white/40 mt-2">Start your own high-stakes room</p>
                                     </button>
                                     {availableRooms.map(room => (
-                                        <button key={room.id} onClick={() => joinRoom(room.id)} disabled={room.players >= room.max_players}
-                                            className={`p-6 glass rounded-2xl border border-white/5 text-left transition-all relative overflow-hidden z-10 ${room.players >= room.max_players ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-white/5'}`}>
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div>
-                                                    <h3 className="text-xl font-bold text-white max-w-[150px] truncate">{room.name}</h3>
-                                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded ${room.status === 'PLAYING' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'}`}>{room.status}</span>
+                                        <div key={room.id} className="relative group">
+                                            <button onClick={() => joinRoom(room.id)} disabled={room.players >= room.max_players}
+                                                className={`w-full p-6 glass rounded-2xl border border-white/5 text-left transition-all relative overflow-hidden z-10 ${room.players >= room.max_players ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] hover:bg-white/5'}`}>
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-white max-w-[150px] truncate">{room.name}</h3>
+                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${room.status === 'PLAYING' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'}`}>{room.status}</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-xs font-black text-white/40">PLAYERS</span>
+                                                        <p className="text-2xl font-black text-emerald-400">{room.players}/{room.max_players}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className="text-xs font-black text-white/40">PLAYERS</span>
-                                                    <p className="text-2xl font-black text-emerald-400">{room.players}/{room.max_players}</p>
+                                                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-emerald-500" style={{ width: `${(room.players / room.max_players) * 100}%` }} />
                                                 </div>
-                                            </div>
-                                            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                                                <div className="h-full bg-emerald-500" style={{ width: `${(room.players / room.max_players) * 100}%` }} />
-                                            </div>
-                                        </button>
+                                            </button>
+                                            {/* Admin Delete Button - visible if user email is specific admin (or for all in dev) */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); socket.emit("delete_room", { room_id: room.id }); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white w-8 h-8 rounded-full z-20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold text-xs shadow-lg hover:scale-110"
+                                                title="Delete Table"
+                                            >
+                                                X
+                                            </button>
+                                        </div>
                                     ))}
                                 </div>
                                 {availableRooms.length === 0 && (

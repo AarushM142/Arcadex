@@ -1,8 +1,14 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+// Dynamic Socket URL for LAN/Localhost support
+const getSocketUrl = () => {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.hostname;
+    // Assume backend is always on port 8000 for dev
+    return `${protocol}://${host}:8000`;
+};
 
-export const socket = io(SOCKET_URL, {
+export const socket = io(getSocketUrl(), {
     autoConnect: false,
     transports: ["websocket"],
 });
