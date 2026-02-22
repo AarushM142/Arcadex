@@ -507,9 +507,9 @@ const TrialByCombat = () => {
 
     return (
         <AppShell>
-            <div className="max-w-7xl mx-auto py-6 px-4 pt-20 md:pt-6 h-[calc(100vh-80px)]">
+            <div className="max-w-7xl mx-auto py-6 px-4 pt-20 md:pt-6 min-h-[calc(100vh-80px)]">
                 {/* Core Theming: #050505 background + dark glassmorphism */}
-                <div className="bg-transparent rounded-3xl border border-white/10 p-6 min-h-full flex flex-col relative overflow-hidden text-white shadow-2xl font-sans">
+                <div className="bg-transparent rounded-3xl border border-white/10 p-4 md:p-6 min-h-[calc(100vh-120px)] flex flex-col relative overflow-y-auto overflow-x-hidden text-white shadow-2xl font-sans no-scrollbar">
 
                     {/* Dynamic Arena Background */}
                     <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl z-0">
@@ -536,7 +536,7 @@ const TrialByCombat = () => {
                     </div>
 
                     {gameStatus === 'MODE_SELECT' && (
-                        <div className="text-center space-y-12 animate-in fade-in zoom-in w-full my-auto z-20 relative">
+                        <div className="text-center space-y-12 animate-in fade-in zoom-in w-full my-auto z-20 relative py-12 md:py-0">
                             <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-gray-400 via-white to-gray-400 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">TRIAL BY COMBAT</h1>
                             <div className="flex flex-col md:flex-row flex-wrap justify-center gap-6 px-4 z-20">
                                 <button onClick={() => startGame('ONLINE')} className="w-full md:w-64 py-8 bg-blue-900/20 backdrop-blur-2xl border-2 border-blue-500/30 hover:bg-blue-900/40 hover:border-blue-400 text-blue-100 font-black rounded-3xl shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all hover:scale-105 text-xl uppercase tracking-widest flex flex-col items-center gap-2 group">
@@ -592,7 +592,7 @@ const TrialByCombat = () => {
                     )}
 
                     {gameStatus === 'CLASS_SELECT' && (
-                        <div className="flex flex-col items-center justify-center h-full relative z-10 animate-in fade-in text-center">
+                        <div className="flex flex-col items-center justify-center min-h-full py-8 relative z-10 animate-in fade-in text-center">
                             <h2 className="text-4xl font-black italic mb-8 uppercase text-emerald-500 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">Choose Your Fighter</h2>
                             <div className="flex gap-4 mb-12 flex-wrap justify-center">
                                 {Object.keys(CLASS_NAMES).map((id) => {
@@ -627,7 +627,7 @@ const TrialByCombat = () => {
                     )}
 
                     {(gameStatus === 'PLAYING' || gameStatus === 'FINISHED') && (
-                        <div className="flex flex-col h-full relative z-10 animate-in fade-in">
+                        <div className="flex flex-col min-h-full relative z-10 animate-in fade-in">
                             {/* Top HUD */}
                             <div className="flex justify-between items-center bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-4 md:p-6 shadow-lg mb-8 h-28">
                                 <HPBar hp={localPlayerState.hp} maxHp={localPlayerState.maxHp} charge={localPlayerState.charge} maxCharge={localPlayerState.maxCharge} isP1={true} />
