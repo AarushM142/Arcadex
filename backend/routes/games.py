@@ -36,21 +36,3 @@ async def tictactoe_move(payload: dict, user=Depends(auth_dependency)):
     )
     return result
 
-
-@router.post("/tbc/start")
-async def start_tbc(payload: dict, user=Depends(auth_dependency)):
-    class_id = payload.get("class_id", 0)
-    mode = payload.get("mode", "ai")
-    return await games_service.start_tbc_session(user["id"], class_id, mode)
-
-
-@router.post("/tbc/move")
-async def tbc_move(payload: dict, user=Depends(auth_dependency)):
-    session_id = payload.get("session_id")
-    move = payload.get("move")
-    target_idx = payload.get("target_idx", 0)
-    if not session_id or move is None:
-        raise HTTPException(status_code=400, detail="session_id and move are required")
-    
-    return await games_service.apply_tbc_move(user["id"], session_id, move, target_idx)
-
