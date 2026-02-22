@@ -9,12 +9,23 @@ def _compute_coins(amount_rupees: int) -> int:
     return 0
 
 async def get_balance(user_id: str):
-    response = await asyncio.to_thread(supabase.table("profiles").select("coin_balance").eq("id", user_id).single().execute)
-    return response.data.get("coin_balance", 100) if response.data else 100
+    try:
+        response = await asyncio.to_thread(supabase.table("profiles").select("coin_balance").eq("id", user_id).single().execute)
+        if response.data:
+            return response.data.get("coin_balance", 100)
+    except Exception as e:
+        print(f"Error fetching balance for {user_id}: {e}")
+    
+    # Default balance if profile doesn't exist or error occurs
+    return 100
 
 async def list_transactions(user_id: str):
-    response = await asyncio.to_thread(supabase.table("transactions").select("*").eq("user_id", user_id).order("created_at", desc=True).execute)
-    return response.data if response.data else []
+    try:
+        response = await asyncio.to_thread(supabase.table("transactions").select("*").eq("user_id", user_id).order("created_at", desc=True).execute)
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"Error in list_transactions for {user_id}: {e}")
+        raise e
 
 async def update_balance(user_id: str, amount: int):
     current_balance = await get_balance(user_id)
@@ -63,10 +74,15 @@ async def add_game_reward(user_id: str, coins: int) -> int:
     return await update_balance(user_id, coins)
 
 async def list_all_pending_transactions() -> list:
-    response = await asyncio.to_thread(
-        supabase.table("transactions").select("*").eq("status", "pending").order("created_at", desc=False).execute
-    )
-    return response.data if response.data else []
+    try:
+        response = await asyncio.to_thread(
+            supabase.table("transactions").select("*").eq("status", "pending").order("created_at", desc=False).execute
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        print(f"CRITICAL ERROR in list_all_pending_transactions: {e}")
+        # Re-raise so FastAPI still shows 500, but we see the log
+        raise e
 
 async def reject_transaction(transaction_id: str) -> Dict:
     response = await asyncio.to_thread(

@@ -70,7 +70,11 @@ const Blackjack = () => {
         const { data } = await supabase.from('profiles').select('coin_balance, username, avatar_url').eq('id', user.id).single();
         if (data) {
             setUserBalance(data.coin_balance || 0);
-            setMyProfile({ username: data.username || user.email.split('@')[0], avatar_url: data.avatar_url });
+            setMyProfile({
+                id: user.id,
+                username: data.username || user.email.split('@')[0],
+                avatar_url: data.avatar_url
+            });
         }
     }, [user]);
 
@@ -93,6 +97,15 @@ const Blackjack = () => {
             }
         }
     }, [myProfile, location.state, navigate, userBalance, currentBet]);
+
+    useEffect(() => {
+        // Cleanup room ONLY when navigating away or changing rooms
+        return () => {
+            if (isOnline && onlineRoom) {
+                socket.emit("leave_room", { room_id: onlineRoom });
+            }
+        };
+    }, [isOnline, onlineRoom]);
 
     useEffect(() => {
         if (!socket) return;
@@ -146,6 +159,7 @@ const Blackjack = () => {
 
             setTurnIndex(data.turn_index);
             setGameStatus(data.status);
+            console.log("Blackjack Update:", { status: data.status, mySid: socket.id, activeSid: data.active_player_sid, players: data.players });
 
             if (data.status === "PLAYING") {
                 setHasPlacedBet(false);
@@ -172,9 +186,6 @@ const Blackjack = () => {
         });
 
         return () => {
-            if (isOnline && onlineRoom) {
-                socket.emit("leave_room", { room_id: onlineRoom });
-            }
             socket.off("waiting_for_opponent");
             socket.off("room_list_update");
             socket.off("error");
@@ -183,7 +194,7 @@ const Blackjack = () => {
             socket.off("player_joined");
             socket.off("player_disconnected");
         };
-    }, [currentBet, engine, userBalance, user, isOnline, onlineRoom]);
+    }, [currentBet, engine, userBalance, user]);
 
     const resolveOnlineGameOver = async (myPlayerObj, dealerScore) => {
         let totalWin = 0;
@@ -349,7 +360,11 @@ const Blackjack = () => {
 
     const activeHand = getActiveHand();
     const isPlayingHand = activeHand && activeHand.score < 21 && activeHand.status !== "BUST" && activeHand.status !== "BLACKJACK";
-    const isMyTurn = gameStatus === 'PLAYING' && players[turnIndex] && (players[turnIndex].sid === socket.id || players[turnIndex].sid === 'local') && !isWaitingForNextRound && isPlayingHand;
+    const isMyTurn = gameStatus === 'PLAYING' &&
+        players[turnIndex] &&
+        (players[turnIndex].sid === socket.id || players[turnIndex].sid === 'local') &&
+        !isWaitingForNextRound &&
+        isPlayingHand;
     const canSplit = isMyTurn && activeHand && activeHand.cards.length === 2 && (activeHand.cards[0] % 13 === activeHand.cards[1] % 13);
     const canDouble = isMyTurn && activeHand && activeHand.cards.length === 2;
 
@@ -504,7 +519,7 @@ const Blackjack = () => {
                             {/* Action Bar - Fixed Bottom for Mobile */}
 
                             {/* Post-Round Actions - Non-blocking UI */}
-                            {isWaitingForNextRound && (
+                            {(isWaitingForNextRound || gameStatus === 'BETTING') && (
                                 <div className="fixed bottom-0 left-0 right-0 z-[300] p-6 flex justify-center animate-in slide-in-from-bottom-full duration-500 pointer-events-none">
                                     <div className="glass-strong bg-black/80 backdrop-blur-xl rounded-3xl p-6 border border-emerald-500/30 shadow-[0_-10px_50px_rgba(0,0,0,0.5)] pointer-events-auto flex flex-col md:flex-row items-center gap-6 max-w-4xl justify-between">
 

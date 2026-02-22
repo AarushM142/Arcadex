@@ -179,6 +179,7 @@ async def handle_create_room(sid, data):
     room_name = data.get("name", "High Rollers Table")
     
     room_id = f"bj_{uuid.uuid4().hex[:8]}"
+    print(f"Creating Blackjack room: {room_id} for {sid}")
     rooms[room_id] = {
         "type": "blackjack",
         "name": room_name,
@@ -204,15 +205,29 @@ async def handle_join_room(sid, data):
 async def join_blackjack_room(sid, room_id, profile):
     room = rooms[room_id]
     
-    # Check if player already in room to prevent duplicates
-    if any(p['sid'] == sid for p in room['players']):
-        # Optional: Re-send match start if needed, or just return
+    # Check if a player with this user_id is already in the room
+    user_id = profile.get("id")
+    existing_player = next((p for p in room['players'] if p['profile'].get('id') == user_id), None)
+    
+    if existing_player:
+        print(f"Player {user_id} rejoining/updating sid from {existing_player['sid']} to {sid}")
+        # Update sid and keep their game state
+        await sio.leave_room(existing_player['sid'], room_id)
+        existing_player['sid'] = sid
+        await sio.enter_room(sid, room_id)
+        
+        # Sync state for the re-joiner
         await sio.emit("bj_match_start", {
             "room_id": room_id, "players": [
                 {"username": p['profile']['username'], "avatar_url": p['profile']['avatar_url'], "sid": p['sid']}
                 for p in room['players']
             ]
-        }, room=room_id, to=sid)
+        }, to=sid)
+        await emit_update(room_id)
+        return
+
+    # Check if sid already in room (fallback)
+    if any(p['sid'] == sid for p in room['players']):
         return
 
     if len(room['players']) >= 4:
@@ -243,6 +258,7 @@ async def join_blackjack_room(sid, room_id, profile):
         "sid": sid
     }, room=room_id, skip_sid=sid)
 
+    print(f"Player {sid} joined Blackjack room {room_id}")
     # Sync state for everyone
     await emit_update(room_id)
     return
@@ -286,9 +302,12 @@ async def handle_bj_bet(sid, data):
         if p['status'] != "READY":
             all_bets_placed = False
             
+    print(f"Bet placed by {sid} in {room_id}: {bet}")
     if all_bets_placed and len(room['players']) > 0:
+        print(f"All bets placed in {room_id}, starting round")
         await start_bj_round(room_id)
     else:
+        print(f"Waiting for more bets in {room_id}")
         await emit_update(room_id)
 
 async def start_bj_round(room_id):
@@ -330,12 +349,19 @@ async def start_bj_round(room_id):
 async def handle_bj_action(sid, data):
     room_id = data.get("room_id")
     action = data.get("action")
-    if room_id not in rooms: return
+    print(f"Blackjack action received: {action} from {sid} in {room_id}")
+    if room_id not in rooms: 
+        print(f"Room {room_id} not found for action")
+        return
     room = rooms[room_id]
-    if room['status'] != "PLAYING": return
+    if room['status'] != "PLAYING": 
+        print(f"Action ignored: room status is {room['status']}")
+        return
     
     active_player = room['players'][room['turn_index']]
-    if active_player['sid'] != sid: return
+    if active_player['sid'] != sid: 
+        print(f"Action ignored: {sid} is not the active player (active: {active_player['sid']})")
+        return
     
     current_hand_idx = active_player['active_hand_index']
     if current_hand_idx >= len(active_player['hands']): return # Should not happen
@@ -436,7 +462,7 @@ async def emit_update(room_id):
                 "status": p.get('status')
             } for p in room['players']
         ],
-        "dealer_hand": [room['dealer_hand'][0], -1] if room['status'] != "FINISHED" else room['dealer_hand'],
+        "dealer_hand": [room['dealer_hand'][0], -1] if room['status'] != "FINISHED" and room['dealer_hand'] else room['dealer_hand'],
         "status": room['status'],
         "turn_index": room['turn_index'],
         "active_player_sid": active_player['sid'] if active_player else None

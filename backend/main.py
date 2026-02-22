@@ -24,6 +24,18 @@ app.add_middleware(
 async def health_check():
     return {"status": "ok"}
 
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    print(f"GLOBAL ERROR: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal Server Error", "detail": str(exc)},
+    )
+
 @app.get("/test-db")
 async def test_db():
     # This verifies your backend can talk to Supabase
