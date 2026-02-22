@@ -62,6 +62,7 @@ const Blackjack = () => {
 
     // Invite Modal
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [lastAutoJoinedRoom, setLastAutoJoinedRoom] = useState(null);
     const hasAutoJoined = useRef(false);
     const lastResolvedRoundRef = useRef(null);
     const roundIdRef = useRef(0);
@@ -94,11 +95,13 @@ const Blackjack = () => {
     useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
     useEffect(() => {
-        if (myProfile.username && location.state?.autoJoin && !hasAutoJoined.current) {
-            hasAutoJoined.current = true;
+        if (myProfile.username && location.state?.autoJoin && location.state.autoJoin !== lastAutoJoinedRoom) {
             const roomId = location.state.autoJoin;
+            setLastAutoJoinedRoom(roomId);
+
             // Clear location state so refresh doesn't auto join again
             navigate('/play/blackjack', { replace: true, state: {} });
+
             if (userBalance >= currentBet) {
                 setIsOnline(true);
                 setGameStatus("JOINING");
@@ -106,10 +109,12 @@ const Blackjack = () => {
                 if (socket.connected) joinFn();
                 else { socket.connect(); socket.once("connect", joinFn); }
             } else {
-                setMessage('Insufficient balance to join!');
+                setMessage('Insufficient balance to join (Need 10 coins)');
+                setTimeout(() => setMessage(''), 3000);
+                setLastAutoJoinedRoom(null);
             }
         }
-    }, [myProfile, location.state, navigate, userBalance, currentBet]);
+    }, [myProfile, location.state, navigate, userBalance, currentBet, lastAutoJoinedRoom]);
 
     useEffect(() => {
         if (!socket) return;
