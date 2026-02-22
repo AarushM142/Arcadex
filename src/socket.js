@@ -1,19 +1,7 @@
 import { io } from "socket.io-client";
 
-const getSocketUrl = () => {
-    const envUrl = import.meta.env.VITE_BACKEND_URL;
-    if (envUrl) return envUrl;
-
-    // Local development: use relative path for Vite proxy
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return window.location.origin;
-    }
-
-    // Production: Always point to the Render backend (Vercel doesn't host the socket)
-    return 'https://neu-backend.onrender.com';
-};
-
-export const socket = io(getSocketUrl(), {
+// Socket initialization: Use relative path so Vite proxy (dev) or production routing handles it
+export const socket = io({
     autoConnect: false,
     transports: ["websocket"],
 });
