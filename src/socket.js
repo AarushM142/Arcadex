@@ -1,7 +1,17 @@
 import { io } from "socket.io-client";
 
-// Socket initialization: Use relative path so Vite proxy (dev) or production routing handles it
-export const socket = io({
+// Dynamic Socket URL: Use Env Var if Present (Prod), otherwise discover LAN IP (Dev)
+const getSocketUrl = () => {
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (envUrl) return envUrl;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.hostname;
+    // Assume backend is always on port 8000 for dev
+    return `${protocol}://${host}:8000`;
+};
+
+export const socket = io(getSocketUrl(), {
     autoConnect: false,
     transports: ["websocket"],
 });
