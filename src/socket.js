@@ -5,10 +5,9 @@ const getSocketUrl = () => {
     const envUrl = import.meta.env.VITE_BACKEND_URL;
     if (envUrl) return envUrl;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const host = window.location.hostname;
-    // Assume backend is always on port 8000 for dev
-    return `${protocol}://${host}:8000`;
+    // Using an empty string or "/" allows the client to use the window.location origin.
+    // This is better for use with Vite's proxy.
+    return "/";
 };
 
 export const socket = io(getSocketUrl(), {

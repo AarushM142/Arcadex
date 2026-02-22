@@ -25,6 +25,13 @@ const gameData = {
         thumbnail: '/tictic.png',
         entryFee: 5,
         accent: 'purple'
+    },
+    'trial-combat': {
+        name: 'TRIAL BY COMBAT',
+        description: 'Prepare yourself for the ultimate duel. "Trial by Combat" offers bloody 1v1 encounters against bots or friends, and a grueling 3v1 Gauntlet Mode for the bravest warriors. Choose your class: Knight, Alchemist, or Magician, each offering different health pools and abilities. The combat logic operates on deterministic outcomes via a custom C engine to ensure absolute fairness. Only the strongest will survive!',
+        thumbnail: '/TbCTitleKrita.jpg',
+        entryFee: 0,
+        accent: 'purple'
     }
 };
 
@@ -188,7 +195,9 @@ const GameDescription = () => {
                                     <span className="text-xs text-muted uppercase tracking-widest font-bold">Entry Fee</span>
                                     <div className="flex items-center gap-2">
                                         <img src="/currency.png" className="w-5 h-5" alt="coins" />
-                                        <span className="text-2xl font-bold text-foreground">{game.entryFee} COINS</span>
+                                        <span className="text-2xl font-bold text-foreground">
+                                            {id === 'trial-combat' ? '0 - 10' : game.entryFee} COINS
+                                        </span>
                                     </div>
                                 </div>
 

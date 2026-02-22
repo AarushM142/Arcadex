@@ -120,6 +120,16 @@ const Dashboard = () => {
       players: '1-2 Players',
       thumbnail: tictactoeThumbnail,
     },
+    {
+      id: 'trial-combat',
+      name: 'TRIAL BY COMBAT',
+      titleColor: 'text-red-400',
+      borderColor: 'border-red-400/30',
+      glowColor: 'shadow-[0_0_20px_rgba(239,68,68,0.3)]',
+      description: 'Enter the arena and fight for glory. High risk, high reward.',
+      players: '1-2 Players',
+      thumbnail: '/TbCTitleKrita.jpg',
+    },
   ];
 
   return (
@@ -127,7 +137,7 @@ const Dashboard = () => {
       {/* Statistics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
-          { label: 'Games Available', value: '3', icon: '🎮' },
+          { label: 'Games Available', value: '4', icon: '🎮' },
           { label: 'Total Players', value: totalPlayers, icon: '🛡️' },
           { label: 'Games Played', value: gamesPlayed, icon: '⚡' },
           { label: 'Coins Won', value: coinsWon, icon: '💰' }

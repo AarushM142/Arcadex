@@ -1,6 +1,7 @@
 import socketio
 import uuid
 import random
+import time
 from typing import Dict, List
 
 # Create a Socket.IO server (ASGI version)
@@ -42,10 +43,11 @@ async def connect(sid, environ, auth):
 
 @sio.event
 async def disconnect(sid, *args):
-    global tictactoe_queue, blackjack_queue
+    global tictactoe_queue, blackjack_queue, tbc_queue
     print(f"Player Disconnected: {sid}")
     tictactoe_queue = [p for p in tictactoe_queue if p['sid'] != sid]
     blackjack_queue = [p for p in blackjack_queue if p['sid'] != sid]
+    tbc_queue = [p for p in tbc_queue if p['sid'] != sid]
     
     # Cleanup rooms
     # Create a copy of keys to iterate safely
@@ -57,8 +59,22 @@ async def disconnect(sid, *args):
 
 @sio.on("leave_room")
 async def handle_leave_room(sid, data):
+    global tbc_queue, tictactoe_queue, blackjack_queue
     room_id = data.get("room_id")
-    await remove_player_from_room(sid, room_id)
+    
+    # Always cleanup queues for this sid, regardless of room_id
+    tbc_queue = [p for p in tbc_queue if p['sid'] != sid]
+    tictactoe_queue = [p for p in tictactoe_queue if p['sid'] != sid]
+    blackjack_queue = [p for p in blackjack_queue if p['sid'] != sid]
+    
+    if room_id:
+        await remove_player_from_room(sid, room_id)
+    else:
+        # If no room_id provided, sweep everywhere and wipe them from any pending rooms
+        for rid in list(rooms.keys()):
+            if any(p.get("sid") == sid for p in rooms[rid].get("players", [])):
+                await remove_player_from_room(sid, rid)
+                
     await broadcast_room_list()
 
 async def remove_player_from_room(sid, rid):
@@ -142,6 +158,99 @@ async def handle_join_private(sid, data):
             await sio.emit("error", {"message": "Room is full or no longer available"}, to=sid)
     else:
         await sio.emit("error", {"message": "Invalid room"}, to=sid)
+
+# --- Trial By Combat Logic ---
+tbc_queue = []
+
+@sio.on("request_tbc_match")
+async def handle_request_tbc_match(sid, data):
+    global tbc_queue
+    profile = data.get("profile", {"username": "Anonymous", "avatar_url": ""})
+    
+    # Check if already in queue to prevent duplicate joins
+    if any(p['sid'] == sid for p in tbc_queue): 
+        return
+
+    if not tbc_queue:
+        tbc_queue.append({"sid": sid, "profile": profile})
+        await sio.emit("waiting_for_opponent", {"message": "Waiting for opponent..."}, to=sid)
+    else:
+        opponent = tbc_queue.pop(0)
+        room_id = f"tbc_{uuid.uuid4().hex[:8]}"
+        await sio.enter_room(sid, room_id)
+        await sio.enter_room(opponent['sid'], room_id)
+        
+        rooms[room_id] = {
+            "type": "trial_combat",
+            "players": [
+                {"sid": opponent['sid'], "profile": opponent['profile']},
+                {"sid": sid, "profile": profile}
+            ]
+        }
+        await sio.emit("tbc_match_start", {"room_id": room_id, "is_p1": False, "opponent_profile": opponent['profile']}, to=sid)
+        await sio.emit("tbc_match_start", {"room_id": room_id, "is_p1": True, "opponent_profile": profile}, to=opponent['sid'])
+
+@sio.on("create_private_tbc")
+async def handle_create_private_tbc(sid, data):
+    profile = data.get("profile", {})
+    room_id = f"tbc_{uuid.uuid4().hex[:8]}"
+    rooms[room_id] = {"type": "trial_combat", "players": [{"sid": sid, "profile": profile}]}
+    await sio.enter_room(sid, room_id)
+    await sio.emit("waiting_for_opponent", {"message": "Waiting for friend...", "room_id": room_id}, to=sid)
+
+@sio.on("join_private_tbc")
+async def handle_join_private_tbc(sid, data):
+    room_id = data.get("room_id")
+    profile = data.get("profile", {})
+    if room_id in rooms and rooms[room_id]["type"] == "trial_combat":
+        room = rooms[room_id]
+        if len(room["players"]) == 1:
+            opponent = room["players"][0]
+            await sio.enter_room(sid, room_id)
+            room["players"].append({"sid": sid, "profile": profile})
+            await sio.emit("tbc_match_start", {"room_id": room_id, "is_p1": True, "opponent_profile": profile}, to=opponent['sid'])
+            await sio.emit("tbc_match_start", {"room_id": room_id, "is_p1": False, "opponent_profile": opponent['profile']}, to=sid)
+        else:
+            await sio.emit("error", {"message": "Room full or already started"}, to=sid)
+    else:
+        await sio.emit("error", {"message": "Invalid room"}, to=sid)
+
+@sio.on("tbc_lock_class")
+async def handle_tbc_lock_class(sid, data):
+    room_id = data.get("room_id")
+    class_id = data.get("classId")
+    if room_id in rooms and rooms[room_id]["type"] == "trial_combat":
+        room = rooms[room_id]
+        for p in room["players"]:
+            if p["sid"] == sid: p["class"] = class_id
+        
+        # Check if both have classes
+        if len(room["players"]) == 2 and all("class" in p for p in room["players"]):
+            seed = int(time.time() * 1000)
+            await sio.emit("tbc_classes_locked", {"seed": seed, "p1Class": room["players"][0]["class"], "p2Class": room["players"][1]["class"]}, room=room_id)
+
+@sio.on("tbc_action")
+async def handle_tbc_action(sid, data):
+    room_id = data.get("room_id")
+    move = data.get("move")
+    if room_id in rooms and rooms[room_id]["type"] == "trial_combat":
+        room = rooms[room_id]
+        if "moves" not in room: room["moves"] = {}
+        
+        is_p1 = room["players"][0]["sid"] == sid
+        if is_p1:
+            room["moves"]["p1"] = move
+        else:
+            room["moves"]["p2"] = move
+
+        if room["moves"].get("p1") is not None and room["moves"].get("p2") is not None:
+            p1m = room.get("moves", {}).get("p1")
+            p2m = room.get("moves", {}).get("p2")
+            room["moves"] = {} # clear for next round
+            
+            # The client engine takes both selections and calculates everything identically.
+            await sio.emit("tbc_turn_result", {"p1Move": p1m, "p2Move": p2m}, room=room_id)
+
 
 # --- Blackjack Room Logic ---
 

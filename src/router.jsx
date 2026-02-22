@@ -11,6 +11,7 @@ import GameDescription from "./components/GameDescription.jsx";
 import Blackjack from "./components/Blackjack.jsx";
 import TicTacToe from "./components/TicTacToe.jsx";
 import Minesweeper from "./components/Minesweeper.jsx";
+import TrialByCombat from "./components/TrialByCombat.jsx";
 
 export const router = createBrowserRouter([
     { path: "/", element: <App /> },
@@ -25,4 +26,5 @@ export const router = createBrowserRouter([
     { path: "/play/blackjack", element: <Blackjack /> },
     { path: "/play/tictactoe", element: <TicTacToe /> },
     { path: "/play/minesweeper", element: <Minesweeper /> },
+    { path: "/play/trial-combat", element: <TrialByCombat /> },
 ]); 
