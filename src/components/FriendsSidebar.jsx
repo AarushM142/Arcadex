@@ -258,19 +258,23 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
         markChatAsRead(friendObj.id);
 
         try {
-            // Fetch message history
+            // Fetch newest 50 messages
             const { data, error } = await supabase
                 .from('messages')
                 .select('*')
                 .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendObj.id}),and(sender_id.eq.${friendObj.id},receiver_id.eq.${user.id})`)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: false }) // Get newest first
                 .limit(50);
 
             if (error) {
                 console.error("Error fetching message history:", error);
                 return;
             }
-            if (data) setMessages(data);
+
+            if (data) {
+                // Reverse to show in chronological order (oldest to newest)
+                setMessages([...data].reverse());
+            }
         } catch (err) {
             console.error("Catch error fetching history:", err);
         }
