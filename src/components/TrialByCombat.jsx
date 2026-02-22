@@ -17,7 +17,6 @@ const TrialByCombat = () => {
     const [selectedMove, setSelectedMove] = useState(null);
     const [animating, setAnimating] = useState(false);
     const logEndRef = useRef(null);
-    const [lastAutoJoinedRoom, setLastAutoJoinedRoom] = useState(null);
     const hasAutoJoined = useRef(false);
     const navigate = useNavigate();
     const location = useLocation();
@@ -52,51 +51,31 @@ const TrialByCombat = () => {
     }, [fetchProfileData]);
 
     useEffect(() => {
-        if (user && location.state?.autoJoin && location.state.autoJoin !== lastAutoJoinedRoom) {
-            const roomId = location.state.autoJoin;
-            setLastAutoJoinedRoom(roomId);
+        if (user && location.state?.autoJoin && !hasAutoJoined.current) {
+            hasAutoJoined.current = true;
 
             const joinRoom = async () => {
-                const { data, error } = await supabase.from('profiles').select('coin_balance').eq('id', user.id).single();
-                if (error) {
-                    console.error("Profile fetch error:", error);
-                    return;
-                }
-
+                const { data } = await supabase.from('profiles').select('coin_balance').eq('id', user.id).single();
                 if (data && data.coin_balance >= 10) {
                     const newBalance = data.coin_balance - 10;
                     await supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id);
                     setUserBalance(newBalance);
 
+                    const roomId = location.state.autoJoin;
                     setCurrentScreen('MATCHMAKING');
                     setMessage("Joining friend's match...");
+                    const fn = () => socket.emit('join_private_tbc', {
+                        room_id: roomId,
+                        profile: { username: user.email?.split('@')[0], avatar_url: myProfilePic }
+                    });
+                    socket.connected ? fn() : (socket.connect(), socket.once("connect", fn));
 
-                    const fn = () => {
-                        console.log("Emitting join_private_tbc for room:", roomId);
-                        socket.emit('join_private_tbc', {
-                            room_id: roomId,
-                            profile: { username: user.email?.split('@')[0], avatar_url: myProfilePic }
-                        });
-                    };
-
-                    if (socket.connected) fn();
-                    else {
-                        socket.connect();
-                        socket.once("connect", fn);
-                    }
-
-                    // Clear state via navigate so the user doesn't auto-join on refresh
-                    navigate(location.pathname, { replace: true, state: {} });
-                } else {
-                    setMessage("Insufficient balance to join (Need 10 coins)");
-                    setTimeout(() => setMessage(''), 3000);
-                    // Reset to allow another try if balance increases
-                    setLastAutoJoinedRoom(null);
+                    window.history.replaceState({}, document.title);
                 }
             };
             joinRoom();
         }
-    }, [user, location.state, myProfilePic, navigate, lastAutoJoinedRoom]);
+    }, [user, location.state, myProfilePic]);
 
     useEffect(() => {
         if (!socket) return;
@@ -128,24 +107,10 @@ const TrialByCombat = () => {
                 setOpponentMove(data.moveId);
             }
         });
-        socket.on("error", (data) => {
-            setMessage(data.message || "An error occurred");
-            // If it's a room error, go back to menu after a short delay
-            if (data.message?.toLowerCase().includes("room") || data.message?.toLowerCase().includes("invalid")) {
-                setTimeout(() => {
-                    setCurrentScreen(GameScreen.MENU);
-                    setMessage("");
-                }, 2000);
-            } else {
-                setTimeout(() => setMessage(''), 3000);
-            }
-        });
-
         return () => {
             socket.off("waiting_for_opponent");
             socket.off("match_start");
             socket.off("receive_move");
-            socket.off("error");
         };
     }, [engine]);
 

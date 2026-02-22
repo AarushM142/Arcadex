@@ -24,7 +24,6 @@ const TicTacToe = () => {
     const [mySymbol, setMySymbol] = useState(null);
     const [opponentProfile, setOpponentProfile] = useState(null);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-    const [lastAutoJoinedRoom, setLastAutoJoinedRoom] = useState(null);
     const hasAutoJoined = useRef(false);
 
     const fetchProfileData = useCallback(async () => {
@@ -48,43 +47,31 @@ const TicTacToe = () => {
     }, [fetchProfileData]);
 
     useEffect(() => {
-        if (myProfile.username && location.state?.autoJoin && location.state.autoJoin !== lastAutoJoinedRoom) {
+        if (myProfile.username && location.state?.autoJoin && !hasAutoJoined.current) {
+            hasAutoJoined.current = true;
             const roomId = location.state.autoJoin;
-            setLastAutoJoinedRoom(roomId);
-
             navigate('/play/tictactoe', { replace: true, state: {} });
 
             if (userBalance >= 5) {
-                const joinRoom = async () => {
-                    const newBalance = userBalance - 5;
-                    const { error } = await supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id);
-                    if (!error) {
-                        setUserBalance(newBalance);
+                // deduct 5 coins
+                const newBalance = userBalance - 5;
+                supabase.from('profiles').update({ coin_balance: newBalance }).eq('id', user.id).then(() => {
+                    setUserBalance(newBalance);
 
-                        const newEngine = new TicTacToeEngine(GameMode.ONLINE_PVP);
-                        setEngine(newEngine);
-                        setGameState(newEngine.getState());
-                        setGameStatus('MATCHMAKING');
+                    const newEngine = new TicTacToeEngine(GameMode.ONLINE_PVP);
+                    setEngine(newEngine);
+                    setGameState(newEngine.getState());
+                    setGameStatus('MATCHMAKING');
 
-                        const joinFn = () => socket.emit("join_private_ttt", {
-                            room_id: roomId,
-                            profile: { username: myProfile.username, avatar_url: myProfile.avatar_url }
-                        });
-
-                        if (socket.connected) joinFn();
-                        else {
-                            socket.connect();
-                            socket.once("connect", joinFn);
-                        }
-                    }
-                };
-                joinRoom();
+                    const joinFn = () => socket.emit("join_private_ttt", { room_id: roomId, profile: { username: myProfile.username, avatar_url: myProfile.avatar_url } });
+                    if (socket.connected) joinFn();
+                    else { socket.connect(); socket.once("connect", joinFn); }
+                })
             } else {
                 setMessage('Insufficient balance to join!');
-                setLastAutoJoinedRoom(null);
             }
         }
-    }, [myProfile, location.state, navigate, userBalance, lastAutoJoinedRoom]);
+    }, [myProfile, location.state, navigate, userBalance]);
 
     // Socket Listeners
     useEffect(() => {
@@ -119,25 +106,11 @@ const TicTacToe = () => {
             }
         });
 
-        socket.on("error", (data) => {
-            setMessage(data.message || "An error occurred");
-            if (data.message?.toLowerCase().includes("room") || data.message?.toLowerCase().includes("full")) {
-                setTimeout(() => {
-                    setGameStatus('MODE_SELECT');
-                    setMessage("");
-                }, 2000);
-            } else {
-                setTimeout(() => setMessage(''), 3000);
-            }
-        });
-
         return () => {
-            socket.off("waiting_for_opponent");
             socket.off("match_start");
             socket.off("receive_move");
-            socket.off("error");
         };
-    }, [engine, myProfile]);
+    }, [engine]);
 
     const startGame = async (mode) => {
         const entryFee = 5;
