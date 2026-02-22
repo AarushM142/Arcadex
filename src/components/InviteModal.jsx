@@ -33,17 +33,24 @@ const InviteModal = ({ isOpen, onClose, gameName, roomId }) => {
 
     const sendInvite = async (friendId) => {
         const inviteMessage = `[INVITE] GAME:${gameName} ROOM:${roomId}`;
-        const { error } = await supabase
-            .from('messages')
-            .insert({
-                sender_id: user.id,
-                receiver_id: friendId,
-                content: inviteMessage
-            });
+        try {
+            const { error } = await supabase
+                .from('messages')
+                .insert({
+                    sender_id: user.id,
+                    receiver_id: friendId,
+                    content: inviteMessage
+                });
 
-        if (!error) {
-            alert("Invite sent!");
-            onClose();
+            if (error) {
+                console.error("Error sending invite:", error);
+                alert("Failed to send invite: " + error.message);
+            } else {
+                alert("Invite sent!");
+                onClose();
+            }
+        } catch (err) {
+            console.error("Catch error sending invite:", err);
         }
     };
 
@@ -59,7 +66,7 @@ const InviteModal = ({ isOpen, onClose, gameName, roomId }) => {
 
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                     {friends.length === 0 ? (
-                        <p className="text-center text-white/40 ext-sm p-4">No friends found.</p>
+                        <p className="text-center text-white/40 text-sm p-4">No friends found.</p>
                     ) : (
                         friends.map(f => (
                             <div key={f.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">

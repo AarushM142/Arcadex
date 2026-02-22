@@ -67,16 +67,17 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
                 table: 'messages'
             }, (payload) => {
                 const newMsg = payload.new;
-                // If it's related to the current open chat, append it 
-                if (activeChat && (newMsg.sender_id === activeChat.id || newMsg.sender_id === user.id)) {
-                    // Only append if it's from the person we're talking to or we sent it
-                    if (newMsg.sender_id === activeChat.id || newMsg.sender_id === user.id) {
-                        setMessages(prev => {
-                            // Quick check to avoid duplicates in case of weird racing
-                            if (prev.find(m => m.id === newMsg.id)) return prev;
-                            return [...prev, newMsg];
-                        });
-                    }
+                console.log("New message received via realtime:", newMsg);
+
+                // Check if message belongs to current chat
+                const isFromActiveFriend = activeChat && newMsg.sender_id === activeChat.id;
+                const isFromMeToActiveFriend = activeChat && newMsg.sender_id === user.id && newMsg.receiver_id === activeChat.id;
+
+                if (isFromActiveFriend || isFromMeToActiveFriend) {
+                    setMessages(prev => {
+                        if (prev.find(m => m.id === newMsg.id)) return prev;
+                        return [...prev, newMsg];
+                    });
 
                     if (newMsg.receiver_id === user.id && isOpenRef.current) {
                         markChatAsRead(newMsg.sender_id);
@@ -84,7 +85,9 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
                 }
 
                 fetchUnread();
-            }).subscribe();
+            }).subscribe((status) => {
+                console.log(`Realtime subscription status for ${msgChannel}:`, status);
+            });
 
         // Listen for friendship changes (new requests, accepts, etc)
         const friendSub = supabase.channel(friendChannel)
@@ -230,30 +233,51 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
         setActiveChat(friendObj);
         markChatAsRead(friendObj.id);
 
-        // Fetch message history
-        const { data, error } = await supabase
-            .from('messages')
-            .select('*')
-            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendObj.id}),and(sender_id.eq.${friendObj.id},receiver_id.eq.${user.id})`)
-            .order('created_at', { ascending: true })
-            .limit(50);
+        try {
+            // Fetch message history
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendObj.id}),and(sender_id.eq.${friendObj.id},receiver_id.eq.${user.id})`)
+                .order('created_at', { ascending: true })
+                .limit(50);
 
-        if (!error && data) setMessages(data);
+            if (error) {
+                console.error("Error fetching message history:", error);
+                return;
+            }
+            if (data) setMessages(data);
+        } catch (err) {
+            console.error("Catch error fetching history:", err);
+        }
     };
 
     const sendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || !activeChat || !user) return;
 
-        const { error } = await supabase
-            .from('messages')
-            .insert({
-                sender_id: user.id,
-                receiver_id: activeChat.id,
-                content: newMessage.trim()
-            });
+        const messageContent = newMessage.trim();
+        const receiverId = activeChat.id;
 
-        if (!error) setNewMessage('');
+        try {
+            const { error } = await supabase
+                .from('messages')
+                .insert({
+                    sender_id: user.id,
+                    receiver_id: receiverId,
+                    content: messageContent
+                });
+
+            if (error) {
+                console.error("Error sending message:", error);
+                alert("Failed to send message: " + error.message);
+            } else {
+                setNewMessage('');
+            }
+        } catch (err) {
+            console.error("Catch error sending message:", err);
+            alert("An unexpected error occurred while sending.");
+        }
     };
 
     // -- UI Components --
