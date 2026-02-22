@@ -171,8 +171,18 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
 
     const fetchUnread = async () => {
         if (!user) return;
-        const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', user.id).eq('is_read', false);
-        if (count !== null) setUnreadMessagesCount(count);
+        const { count, error } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('receiver_id', user.id)
+            .eq('is_read', false);
+
+        if (error) {
+            console.error("Error fetching unread count (RLS issue?):", error);
+        } else {
+            console.log(`Unread messages count for ${user.email}:`, count);
+            if (count !== null) setUnreadMessagesCount(count);
+        }
     };
 
     const searchUsers = async (e) => {
