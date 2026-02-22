@@ -25,6 +25,13 @@ const gameData = {
         thumbnail: '/tictic.png',
         entryFee: 5,
         accent: 'purple'
+    },
+    trialbycombat: {
+        name: 'TRIAL BY COMBAT',
+        description: "Enter the arena of legends in Trial by Combat. Choose between the resilient Knight, the mystical Magician, or the cunning Alchemist. Master a complex system of charges, buffs, and status effects in intense turn-based duels. Face off against the computer, a friend, or attempt the legendary Gauntlet— a 3v1 survival mode that only the truest champions can conquer. Strategy is your only weapon; every turn counts.",
+        thumbnail: '/nandangame/p1_knight.png',
+        entryFee: 10,
+        accent: 'orange'
     }
 };
 
@@ -49,6 +56,13 @@ const accentClasses = {
         bg: 'bg-purple-500',
         bgHover: 'hover:bg-purple-400',
         shadow: 'shadow-purple-500/20'
+    },
+    orange: {
+        text: 'text-orange-400',
+        border: 'border-orange-400/20',
+        bg: 'bg-orange-500',
+        bgHover: 'hover:bg-orange-400',
+        shadow: 'shadow-orange-500/20'
     }
 };
 
@@ -177,7 +191,7 @@ const GameDescription = () => {
                         </div>
 
                         <div className="glass card-xl p-8 space-y-4">
-                            <h1 className={`text-4xl font-black ${accent.text} uppercase tracking-tighter`}>{game.name}</h1>
+                            <h1 className={`text-4xl font-black ${accent.text} uppercase tracking-tighter ${id === 'trialbycombat' ? 'font-blackletter text-6xl' : ''}`}>{game.name}</h1>
 
                             <p className="text-muted leading-relaxed text-lg italic">
                                 {game.description}

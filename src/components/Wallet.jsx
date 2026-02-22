@@ -13,6 +13,12 @@ const Wallet = () => {
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [upiId, setUpiId] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
 
   const coinPackages = [
     { rupees: 10, coins: 100, bonus: 0 },
@@ -53,7 +59,7 @@ const Wallet = () => {
 
   const handlePurchase = async (packageData) => {
     if (!session?.access_token) {
-      alert('Please sign in to purchase coins');
+      showToast('Please sign in to purchase coins');
       return;
     }
 
@@ -63,7 +69,7 @@ const Wallet = () => {
 
   const handleSubmitPayment = async () => {
     if (!upiId.trim()) {
-      alert('Please enter UPI transaction ID');
+      showToast('Please enter UPI transaction ID');
       return;
     }
 
@@ -93,7 +99,7 @@ const Wallet = () => {
           setTransactions(txnData.transactions);
         }
 
-        alert('Payment submitted! It will be reviewed and approved shortly.');
+        showToast('Payment submitted! It will be reviewed and approved shortly.');
       }
     } catch (error) {
       console.error('Error submitting payment:', error);
@@ -127,6 +133,11 @@ const Wallet = () => {
 
   return (
     <AppShell>
+      {toastMessage && (
+        <div className="fixed top-4 md:top-24 left-1/2 -translate-x-1/2 bg-black/90 text-cyan-400 font-bold px-8 py-4 rounded-full shadow-[0_0_20px_rgba(34,211,238,0.3)] border border-cyan-400/30 z-[9999] animate-bounce text-lg text-center whitespace-nowrap uppercase tracking-widest pointer-events-none">
+          {toastMessage}
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         {/* Balance Section */}
         <div className="text-center mb-8">

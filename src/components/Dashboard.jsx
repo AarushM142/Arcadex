@@ -120,6 +120,16 @@ const Dashboard = () => {
       players: '1-2 Players',
       thumbnail: tictactoeThumbnail,
     },
+    {
+      id: 'trialbycombat',
+      name: 'TRIAL BY COMBAT',
+      titleColor: 'text-orange-400',
+      borderColor: 'border-orange-400/30',
+      glowColor: 'shadow-[0_0_20px_rgba(251,146,60,0.3)]',
+      description: 'Engage in brutal turn-based combat. Choose your class and prove your worth in the arena.',
+      players: '1-2 Players / Gauntlet',
+      thumbnail: '/nandangame/p1_knight.png',
+    },
   ];
 
   return (
@@ -127,7 +137,7 @@ const Dashboard = () => {
       {/* Statistics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
-          { label: 'Games Available', value: '3', icon: '🎮' },
+          { label: 'Games Available', value: '4', icon: '🎮' },
           { label: 'Total Players', value: totalPlayers, icon: '🛡️' },
           { label: 'Games Played', value: gamesPlayed, icon: '⚡' },
           { label: 'Coins Won', value: coinsWon, icon: '💰' }
@@ -151,7 +161,7 @@ const Dashboard = () => {
             FEATURED GAMES
           </h2>
           <span className="text-sm text-muted font-medium bg-white/5 px-3 py-1 rounded-full border border-white/10">
-            3 AVAILABLE
+            4 AVAILABLE
           </span>
         </div>
 
