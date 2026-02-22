@@ -87,7 +87,10 @@ const TicTacToe = () => {
             setMySymbol(data.symbol);
             setOnlineRoom(data.room_id);
             setOpponentProfile(data.opponent);
-            setGameStatus('PLAYING');
+            setGameStatus('MATCH_FOUND');
+            setTimeout(() => {
+                setGameStatus('PLAYING');
+            }, 2000);
             setMessage("");
         });
 
@@ -317,6 +320,20 @@ const TicTacToe = () => {
                                 )}
                             </div>
                             <button onClick={() => setGameStatus('SETUP')} className="px-8 py-3 glass pill text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 hover:text-red-400 border-red-500/10 transition-all">Abort Search</button>
+                        </div>
+                    )}
+
+                    {gameStatus === 'MATCH_FOUND' && (
+                        <div className="text-center space-y-10 animate-in fade-in zoom-in w-full max-w-md">
+                            <div className="relative w-40 h-40 mx-auto flex flex-col items-center justify-center">
+                                <div className="absolute inset-0 border-4 border-green-500/30 rounded-full animate-pulse"></div>
+                                <div className="absolute inset-0 border-4 border-t-green-500 rounded-full animate-spin"></div>
+                                <div className="absolute inset-0 flex items-center justify-center text-5xl drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]">⚔️</div>
+                            </div>
+                            <div className="space-y-4">
+                                <p className="text-3xl font-black italic tracking-widest text-green-400">MATCH FOUND!</p>
+                                <p className="text-sm font-bold text-white/50 animate-pulse">Entering arena...</p>
+                            </div>
                         </div>
                     )}
 

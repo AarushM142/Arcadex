@@ -65,6 +65,23 @@ const Blackjack = () => {
     const hasAutoJoined = useRef(false);
     const lastResolvedRoundRef = useRef(null);
     const roundIdRef = useRef(0);
+    const isOnlineRef = useRef(isOnline);
+    const onlineRoomRef = useRef(onlineRoom);
+
+    useEffect(() => {
+        isOnlineRef.current = isOnline;
+        onlineRoomRef.current = onlineRoom;
+    }, [isOnline, onlineRoom]);
+
+    // Handle abrupt unmounts securely without breaking the active connection during React state hooks
+    useEffect(() => {
+        return () => {
+            if (socket && isOnlineRef.current && onlineRoomRef.current) {
+                socket.emit("leave_room", { room_id: onlineRoomRef.current });
+            }
+        };
+    }, []);
+
     const fetchProfile = useCallback(async () => {
         if (!user) return;
         const { data } = await supabase.from('profiles').select('coin_balance, username, avatar_url').eq('id', user.id).single();
@@ -172,9 +189,6 @@ const Blackjack = () => {
         });
 
         return () => {
-            if (isOnline && onlineRoom) {
-                socket.emit("leave_room", { room_id: onlineRoom });
-            }
             socket.off("waiting_for_opponent");
             socket.off("room_list_update");
             socket.off("error");

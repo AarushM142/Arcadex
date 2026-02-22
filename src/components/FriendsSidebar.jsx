@@ -17,7 +17,13 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
     const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
     const [hasViewedRequests, setHasViewedRequests] = useState(false);
     const [prevReqCount, setPrevReqCount] = useState(0);
+    const [toastMessage, setToastMessage] = useState('');
     const messagesEndRef = useRef(null);
+
+    const showToast = (msg) => {
+        setToastMessage(msg);
+        setTimeout(() => setToastMessage(''), 3000);
+    };
 
     // Initial Fetch
     useEffect(() => {
@@ -192,10 +198,10 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
             });
 
         if (!error) {
-            alert('Friend request sent!');
+            showToast('Friend request sent!');
             setSearchResults(prev => prev.filter(p => p.id !== receiverId));
         } else {
-            alert(error.message.includes('duplicate') ? 'Request already exists.' : 'Failed to send request.');
+            showToast(error.message.includes('duplicate') ? 'Request already exists.' : 'Failed to send request.');
         }
     };
 
@@ -265,6 +271,12 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
 
     return (
         <div className={`fixed inset-y-0 right-0 w-80 bg-black/95 border-l border-white/10 shadow-2xl flex flex-col z-[100] transition-transform duration-300 backdrop-blur-3xl ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            {toastMessage && (
+                <div className="absolute top-4 md:top-24 left-1/2 -translate-x-1/2 bg-black/90 text-cyan-400 font-bold px-8 py-4 rounded-full shadow-[0_0_20px_rgba(34,211,238,0.3)] border border-cyan-400/30 z-[300] animate-bounce text-lg text-center whitespace-nowrap uppercase tracking-widest pointer-events-none">
+                    {toastMessage}
+                </div>
+            )}
+
             {/* Header */}
             <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
                 <h2 className="text-xl font-black italic text-cyan-400">SOCIAL HUB</h2>

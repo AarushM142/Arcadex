@@ -12,6 +12,7 @@ sio = socketio.AsyncServer(
 # Matchmaking Queues
 tictactoe_queue = []
 blackjack_queue = []
+tbc_queue = []
 
 # rooms = { room_id: { type: 'blackjack', players: [...], state: {...} } }
 rooms = {}
@@ -46,6 +47,7 @@ async def disconnect(sid, *args):
     print(f"Player Disconnected: {sid}")
     tictactoe_queue = [p for p in tictactoe_queue if p['sid'] != sid]
     blackjack_queue = [p for p in blackjack_queue if p['sid'] != sid]
+    tbc_queue = [p for p in tbc_queue if p['sid'] != sid]
     
     # Cleanup rooms
     # Create a copy of keys to iterate safely
@@ -142,6 +144,79 @@ async def handle_join_private(sid, data):
             await sio.emit("error", {"message": "Room is full or no longer available"}, to=sid)
     else:
         await sio.emit("error", {"message": "Invalid room"}, to=sid)
+
+# --- Trial By Combat Room Logic ---
+
+@sio.on("request_match_tbc")
+async def handle_request_match_tbc(sid, data):
+    global tbc_queue
+    profile = data.get("profile", {"username": "Anonymous", "avatar_url": ""})
+    if any(p['sid'] == sid for p in tbc_queue): return
+    if not tbc_queue:
+        tbc_queue.append({"sid": sid, "profile": profile})
+        await sio.emit("waiting_for_opponent", {"message": "Waiting for opponent..."}, to=sid)
+    else:
+        opponent = tbc_queue.pop(0)
+        room_id = f"tbc_{uuid.uuid4().hex[:8]}"
+        await sio.enter_room(sid, room_id)
+        await sio.enter_room(opponent['sid'], room_id)
+        
+        rooms[room_id] = {
+            "type": "tbc",
+            "name": "Trial By Combat Arena",
+            "players": [
+                {"sid": opponent['sid'], "profile": opponent['profile']},
+                {"sid": sid, "profile": profile}
+            ],
+            "status": "PLAYING"
+        }
+        
+        # We assign opponent as Player 1 (symbol: 1) and sid as Player 2 (symbol: 2)
+        seed = random.randint(1, 1000000)
+        await sio.emit("match_start", {"room_id": room_id, "symbol": 1, "opponent": profile, "seed": seed}, to=opponent['sid'])
+        await sio.emit("match_start", {"room_id": room_id, "symbol": 2, "opponent": opponent['profile'], "seed": seed}, to=sid)
+
+@sio.on("create_private_tbc")
+async def handle_create_private_tbc(sid, data):
+    profile = data.get("profile", {"username": "Anonymous", "avatar_url": ""})
+    room_id = f"tbc_{uuid.uuid4().hex[:8]}"
+    rooms[room_id] = {
+        "type": "tbc_private",
+        "players": [{"sid": sid, "profile": profile}]
+    }
+    await sio.enter_room(sid, room_id)
+    await sio.emit("waiting_for_opponent", {"message": "Waiting for friend to join...", "room_id": room_id}, to=sid)
+
+@sio.on("join_private_tbc")
+async def handle_join_private_tbc(sid, data):
+    room_id = data.get("room_id")
+    profile = data.get("profile", {"username": "Anonymous", "avatar_url": ""})
+    if room_id in rooms and rooms[room_id]["type"] == "tbc_private":
+        room = rooms[room_id]
+        if len(room["players"]) == 1:
+            opponent = room["players"][0]
+            await sio.enter_room(sid, room_id)
+            room["players"].append({"sid": sid, "profile": profile})
+            seed = random.randint(1, 1000000)
+            await sio.emit("match_start", {"room_id": room_id, "symbol": 1, "opponent": profile, "seed": seed}, to=opponent['sid'])
+            await sio.emit("match_start", {"room_id": room_id, "symbol": 2, "opponent": opponent['profile'], "seed": seed}, to=sid)
+            del rooms[room_id] # Clean up
+        else:
+            await sio.emit("error", {"message": "Room is full or no longer available"}, to=sid)
+    else:
+        await sio.emit("error", {"message": "Invalid room"}, to=sid)
+
+@sio.on("leave_tbc_queue")
+async def handle_leave_tbc_queue(sid):
+    global tbc_queue
+    tbc_queue = [p for p in tbc_queue if p['sid'] != sid]
+    to_delete = []
+    for rid, room in rooms.items():
+        if room["type"] == "tbc_private":
+            if any(p["sid"] == sid for p in room["players"]):
+                to_delete.append(rid)
+    for rid in to_delete:
+        del rooms[rid]
 
 # --- Blackjack Room Logic ---
 
@@ -378,15 +453,22 @@ async def handle_bj_action(sid, data):
             # Deal to current
             current_hand['cards'].append(room['deck'].pop())
             current_hand['score'] = calculate_score(current_hand['cards'])
+            if current_hand['score'] >= 21:
+                current_hand['status'] = "BLACKJACK" if current_hand['score'] == 21 else "BUST"
             
             # Deal to new
             new_hand['cards'].append(room['deck'].pop())
             new_hand['score'] = calculate_score(new_hand['cards'])
+            if new_hand['score'] >= 21:
+                new_hand['status'] = "BLACKJACK" if new_hand['score'] == 21 else "BUST"
             
             # Insert new hand after current
             active_player['hands'].insert(current_hand_idx + 1, new_hand)
             
-            await emit_update(room_id)
+            if current_hand['status'] != "PLAYING":
+                await next_turn(room_id)
+            else:
+                await emit_update(room_id)
 
 async def next_turn(room_id):
     room = rooms[room_id]
@@ -399,7 +481,10 @@ async def next_turn(room_id):
     # Move to next hand if available
     if active_player['active_hand_index'] < len(active_player['hands']) - 1:
         active_player['active_hand_index'] += 1
-        await emit_update(room_id)
+        if active_player['hands'][active_player['active_hand_index']]['status'] != "PLAYING":
+            await next_turn(room_id)
+        else:
+            await emit_update(room_id)
     else:
         # Move to next player
         room['turn_index'] += 1
@@ -407,8 +492,8 @@ async def next_turn(room_id):
             await dealer_play(room_id)
         else:
             next_p = room['players'][room['turn_index']]
-            # Skip players with no hands or blackjack
-            if not next_p['hands'] or next_p['hands'][0]['status'] == "BLACKJACK":
+            # Skip players with no hands or an already finished first hand
+            if not next_p['hands'] or next_p['hands'][0]['status'] != "PLAYING":
                 await next_turn(room_id)
             else:
                 await emit_update(room_id)
@@ -436,7 +521,7 @@ async def emit_update(room_id):
                 "status": p.get('status')
             } for p in room['players']
         ],
-        "dealer_hand": [room['dealer_hand'][0], -1] if room['status'] != "FINISHED" else room['dealer_hand'],
+        "dealer_hand": (([room['dealer_hand'][0], -1] if len(room['dealer_hand']) > 0 else []) if room['status'] != "FINISHED" else room['dealer_hand']),
         "status": room['status'],
         "turn_index": room['turn_index'],
         "active_player_sid": active_player['sid'] if active_player else None
