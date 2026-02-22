@@ -49,17 +49,21 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
         }
     }, [isOpen, activeTab]);
 
+    const isOpenRef = useRef(isOpen);
+    useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+
     const activeChatRef = useRef(null);
     useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
 
     // Realtime Subscriptions
     useEffect(() => {
-        if (!user) return;
+        if (!user?.id) return;
 
-        const msgChannel = `messages_sync_${user.id}`;
-        const friendChannel = `friends_sync_${user.id}`;
+        const userId = user.id;
+        const msgChannel = `messages_sync_${userId}`;
+        const friendChannel = `friends_sync_${userId}`;
 
-        console.log(`Setting up realtime for ${user.id}...`);
+        console.log(`Setting up realtime for ${userId}...`);
 
         // Listen for new messages
         const msgSub = supabase.channel(msgChannel)
