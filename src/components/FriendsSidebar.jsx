@@ -49,8 +49,8 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
         }
     }, [isOpen, activeTab]);
 
-    const isOpenRef = useRef(isOpen);
-    useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
+    const activeChatRef = useRef(null);
+    useEffect(() => { activeChatRef.current = activeChat; }, [activeChat]);
 
     // Realtime Subscriptions
     useEffect(() => {
@@ -58,6 +58,8 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
 
         const msgChannel = `messages_sync_${user.id}`;
         const friendChannel = `friends_sync_${user.id}`;
+
+        console.log(`Setting up realtime for ${user.id}...`);
 
         // Listen for new messages
         const msgSub = supabase.channel(msgChannel)
@@ -67,26 +69,33 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
                 table: 'messages'
             }, (payload) => {
                 const newMsg = payload.new;
-                console.log("New message received via realtime:", newMsg);
+                const currentChat = activeChatRef.current;
 
-                // Check if message belongs to current chat
-                const isFromActiveFriend = activeChat && newMsg.sender_id === activeChat.id;
-                const isFromMeToActiveFriend = activeChat && newMsg.sender_id === user.id && newMsg.receiver_id === activeChat.id;
+                console.log("Realtime Payload:", newMsg);
+                console.log("Current Active Chat:", currentChat?.username, currentChat?.id);
 
-                if (isFromActiveFriend || isFromMeToActiveFriend) {
-                    setMessages(prev => {
-                        if (prev.find(m => m.id === newMsg.id)) return prev;
-                        return [...prev, newMsg];
-                    });
+                if (currentChat) {
+                    const isFromPartner = newMsg.sender_id === currentChat.id && newMsg.receiver_id === user.id;
+                    const isFromMeToPartner = newMsg.sender_id === user.id && newMsg.receiver_id === currentChat.id;
 
-                    if (newMsg.receiver_id === user.id && isOpenRef.current) {
-                        markChatAsRead(newMsg.sender_id);
+                    if (isFromPartner || isFromMeToPartner) {
+                        console.log("Match! Appending message to UI.");
+                        setMessages(prev => {
+                            if (prev.find(m => m.id === newMsg.id)) return prev;
+                            return [...prev, newMsg];
+                        });
+
+                        if (newMsg.receiver_id === user.id && isOpenRef.current) {
+                            markChatAsRead(newMsg.sender_id);
+                        }
+                    } else {
+                        console.log("Ignored: Message does not belong to the active chat session.");
                     }
                 }
 
                 fetchUnread();
             }).subscribe((status) => {
-                console.log(`Realtime subscription status for ${msgChannel}:`, status);
+                console.log(`Msg Sub Status: ${status}`);
             });
 
         // Listen for friendship changes (new requests, accepts, etc)
@@ -97,10 +106,11 @@ const FriendsSidebar = ({ isOpen, onClose, onNotificationChange }) => {
             }).subscribe();
 
         return () => {
+            console.log("Cleaning up realtime channels...");
             supabase.removeChannel(msgSub);
             supabase.removeChannel(friendSub);
         };
-    }, [user, activeChat]);
+    }, [user]); // Only depend on user, use refs for chat context
 
     // Polling fallback for notifications
     useEffect(() => {
