@@ -4,6 +4,7 @@ import { UserAuth } from "../context/AuthContext";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { supabase } from "../supabaseClient";
 import FriendsSidebar from "./FriendsSidebar";
+import { wakeUpBackend } from "../socket";
 
 const ADMIN_EMAIL = 'am2007144@gmail.com';
 
@@ -22,6 +23,10 @@ export function AppShell({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [friendsSidebarOpen, setFriendsSidebarOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+
+  useEffect(() => {
+    wakeUpBackend();
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
