@@ -14,14 +14,17 @@ const Signup = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); // Prevents the browser from running a default page-refresh action
+    setError('');       // Clears previous UI error logs
+    setLoading(true);   // Locks the submit button and displays a loading spinner
+
     try {
+      // Calls our global memory context to hit the Supabase Backend
+      // We pass the username inside the "data" payload so it's instantly attached to their user profile
       await signUp(email, password, {
         data: { username: username.toLowerCase() }
       });
-      // Email 2FA is removed, so we can go straight to the dashboard
+      // Email 2FA is removed for development, so we can route the user straight to the dashboard
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);

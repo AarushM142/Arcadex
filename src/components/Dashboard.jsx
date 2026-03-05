@@ -18,10 +18,15 @@ const Dashboard = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch the real coin balance from the profiles table
+  // useEffect: This is a core React feature. It runs code "on the side" after the page is drawn.
+  // The empty array [] at the end means "run this once when the Dashboard first loads".
+  // The [user] array means "run this again anytime the logged-in User's data changes".
+  // Fetch the real coin balance from the database
   useEffect(() => {
     const fetchBalance = async () => {
       if (user) {
+        // Use the Supabase tool we configured to query the 'profiles' SQL table over the internet.
+        // Similar to writing: SELECT coin_balance FROM profiles WHERE id = user.id LIMIT 1;
         const { data } = await supabase
           .from('profiles')
           .select('coin_balance')
@@ -39,6 +44,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchTotalPlayers = async () => {
       try {
+        // Query the database but ask only for the total row count instead of downloading every user's data
         const { count, error } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });

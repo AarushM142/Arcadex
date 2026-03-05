@@ -11,19 +11,23 @@ const Singin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // This function is triggered when the user clicks the "Sign In" button
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+    e.preventDefault(); // Stops the browser from reloading the page when the form is submitted
+    setError('');       // Clears any old red error messages off the screen
+    setLoading(true);   // Changes the button to say "Signing in..." so the user knows it's working
 
+    // Send the email and password to the Supabase backend for verification
     const { error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
 
     if (error) {
+      // If Supabase rejects the login, display their specific error message
       setError(error.message);
     } else {
+      // If success, use React Router to instantly jump to the Dashboard without a page refresh
       navigate('/dashboard');
     }
     setLoading(false);

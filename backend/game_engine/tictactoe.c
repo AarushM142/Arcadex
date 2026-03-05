@@ -6,6 +6,9 @@
  * Supports: Player vs Player (Local), Player vs AI
  */
 
+// #define acts as a "Find and Replace" tool for the compiler.
+// Before compiling to WebAssembly, it swaps the word "BOARD_SIZE" with the number "9" everywhere.
+// This is much more memory efficient than declaring a standard integer variable.
 #define EMPTY 0
 #define PLAYER_X 1
 #define PLAYER_O 2
@@ -15,7 +18,11 @@
 #define MODE_PVP 0
 #define MODE_PV_AI 1
 
+// A "struct" groups multiple variables together into a single "package" in memory.
+// "typedef" gives this struct an official name so we don't have to keep typing "struct" everywhere.
 typedef struct {
+    // int8_t explicitly forces the computer to only use 1 Byte of RAM (instead of the usual 4).
+    // This extreme memory efficiency is crucial because the AI copies this structure thousands of times per second. 
     int8_t board[BOARD_SIZE];
     int8_t currentPlayer;
     int8_t gameMode; // 0: PvP, 1: PvAI
@@ -49,12 +56,17 @@ static int8_t check_winner(const int8_t* board) {
     return full ? 3 : 0; // 3 for Draw, 0 for None
 }
 
-// Minimax for AI
+// The Minimax Algorithm (The "Oracle" AI)
+// This is a complex recursive algorithm. The AI manually plays out every single possible future game 
+// until it reaches a win, lose, or draw, and then uses those outcomes to pick the mathematically perfect move today.
 static int minimax(int8_t* board, int depth, bool isMax) {
     int score = check_winner(board);
+    
+    // Base Cases: If the game ended, assign a score. 
+    // We add/subtract the 'depth' to train the AI to win quickly, or drag out a loss as long as possible.
     if (score == PLAYER_O) return 10 - depth; // AI is O
     if (score == PLAYER_X) return depth - 10; // Player is X
-    if (score == 3) return 0;
+    if (score == 3) return 0; // Draw
 
     if (isMax) {
         int best = -1000;
@@ -82,6 +94,8 @@ static int minimax(int8_t* board, int depth, bool isMax) {
 }
 
 // Public Interface
+// This function acts like a factory. It builds a fresh, blank copy of our "TicTacToeState" package in memory,
+// zeroes out the board manually using a loop, and sets the trackers to Player X's turn 1.
 TicTacToeState init_game(int8_t mode) {
     TicTacToeState state;
     for (int i = 0; i < BOARD_SIZE; i++) state.board[i] = EMPTY;

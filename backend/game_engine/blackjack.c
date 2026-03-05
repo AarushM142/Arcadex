@@ -9,12 +9,18 @@
  * doubling down, and basic strategy hints.
  */
 
+// MACROS (#define): These act as "Find and Replace" tools for the compiler.
+// By defining MAX_HAND_CARDS to 12 at compile time, we statically limit the arrays,
+// preventing dangerous memory overflow crashes if a player hits too many times.
 #define MAX_HAND_CARDS 12
 #define MAX_HANDS 4      // Support for initial hand + splits
 #define DECK_SIZE 52
 
 // --- Types ---
 
+// ENUMS: These are human-readable shortcuts for integers.
+// Instead of writing 'action = 0', we write 'action = ACTION_HIT'.
+// The compiler automatically converts ACTION_HIT to 0, ensuring our code is readable without wasting memory.
 typedef enum {
     ACTION_HIT,
     ACTION_STAND,
@@ -30,7 +36,11 @@ typedef enum {
     RESULT_BLACKJACK
 } GameResult;
 
+// STRUCTS: Group multiple primitive variables into a single conceptual object (like JSON).
 typedef struct {
+    // uint8_t (Unsigned Integer): Allocates precisely 1 Byte of memory (values 0-255).
+    // We strictly use unsigned variables here because physical components like total cards 
+    // or bet amounts can mathematically never be negative numbers. 
     uint8_t cards[MAX_HAND_CARDS];
     uint8_t count;
     uint8_t bet;
@@ -54,6 +64,10 @@ typedef struct {
 
 // --- PRNG (Xorshift) ---
 
+// PRNG (Pseudo-Random Number Generator)
+// Computers cannot generate true randomness; they run rigid math equations.
+// We pass a starting 'seed' (usually the current millisecond time) into this Xorshift32 equation 
+// which spits out a perfectly reproducible, statistically random sequence of numbers to shuffle the deck.
 static uint32_t xorshift32(uint32_t* state) {
     uint32_t x = *state;
     x ^= x << 13;

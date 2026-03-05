@@ -16,6 +16,9 @@ export const Player = {
 };
 
 export class TicTacToeEngine {
+    // The JS constructor acts like an initialization factory.
+    // Unlike the C version which pre-allocates exactly 9 bytes of RAM at compile time,
+    // Javascript arrays are dynamic, but we use .fill() to simulate a static grid of zeros (Empty spots).
     constructor(mode = GameMode.PVP) {
         this.board = Array(9).fill(Player.EMPTY);
         this.currentPlayer = Player.X;
@@ -31,6 +34,8 @@ export class TicTacToeEngine {
             [0, 4, 8], [2, 4, 6]
         ];
 
+        // This checks the 8 possible win conditions (3 Horizontal, 3 Vertical, 2 Diagonal).
+        // It checks if the first slot is not empty, and if the other two slots match it exactly.
         for (let p of patterns) {
             if (board[p[0]] !== Player.EMPTY &&
                 board[p[0]] === board[p[1]] &&
@@ -43,11 +48,14 @@ export class TicTacToeEngine {
         return 0;
     }
 
+    // The Minimax Recursive Engine (Identical to the C Logic)
+    // It plays out every possible future board state. It assigns +10 if the AI (O) wins, 
+    // and -10 if the human (X) wins. The algorithm tries to Maximize O's score, and Minimize X's score.
     _minimax(board, depth, isMax) {
         const score = this._checkWinner(board);
-        if (score === Player.O) return 10 - depth;
+        if (score === Player.O) return 10 - depth; // The depth penalty ensures the AI prefers fast wins
         if (score === Player.X) return depth - 10;
-        if (score === 3) return 0;
+        if (score === 3) return 0; // Draw
 
         if (isMax) {
             let best = -Infinity;

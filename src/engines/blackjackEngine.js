@@ -29,11 +29,15 @@ export class BlackjackEngine {
         this.activeHandIndex = 0;
     }
 
-    // Xorshift32 PRNG
+    // Xorshift32 PRNG (Pseudo-Random Number Generator)
+    // Computers cannot generate true randomness. We use this math equation instead.
+    // If we give it the exact same "seed" number, it will spit out the exact same "random" sequence.
+    // This allows multiplayer games to perfectly sync without sending the whole deck over the internet.
     _random() {
         this.seed ^= this.seed << 13;
         this.seed ^= this.seed >> 17;
         this.seed ^= this.seed << 5;
+        // The >>> 0 ensures we don't accidentally get a negative number from Javascript's bitwise operator
         return (this.seed >>> 0) / 4294967296;
     }
 
@@ -59,10 +63,15 @@ export class BlackjackEngine {
         return score;
     }
 
+    // The Fisher-Yates Shuffle Algorithm
     shuffle() {
+        // Modern JS shortcut: instantiate an array of exactly 52 slots, filled with numbers 0-51
         this.deck = Array.from({ length: 52 }, (_, i) => i);
+
+        // Loop backwards through the deck and mathematically swap each card with a random card before it
         for (let i = 51; i > 0; i--) {
             const j = Math.floor(this._random() * (i + 1));
+            // ES6 Array Destructuring shortcut: swap two array items without needing a temporary middle variable
             [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
         }
         this.deckIndex = 0;

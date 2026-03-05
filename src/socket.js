@@ -1,21 +1,28 @@
 import { io } from "socket.io-client";
 
-// Dynamic Socket URL: Use Env Var if Present (Prod), otherwise discover LAN IP (Dev)
+// Dynamic Socket URL: This decides where our WebSockets (the "live cables") should plug into.
+// In Production, it plugs into the Render server URL.
+// In Local Development, it plugs directly into the Python backend running on port 8000.
 export const getSocketUrl = () => {
     const envUrl = import.meta.env.VITE_BACKEND_URL;
     if (envUrl) return envUrl;
 
-    // Connect directly to the backend rather than using the Vite proxy
     return "http://127.0.0.1:8000";
 };
 
+// Free-Tier Workaround: Render puts free servers to sleep after 15 minutes of inactivity.
+// This function acts as a tiny alarm clock. It sends a single HTTP Ping the moment the 
+// user opens the website to force the Python server to wake up before they try to join a multiplayer game.
 export const wakeUpBackend = () => {
     fetch(`${getSocketUrl()}/api/health`).catch(() => console.log("Wake up ping completed."));
 };
 
+// Initialize the Socket.io connection.
+// 'autoConnect: false' ensures we don't spam the server with live connections 
+// until the user actually enters a multiplayer lobby.
 export const socket = io(getSocketUrl(), {
     autoConnect: false,
-    transports: ["websocket"],
+    transports: ["websocket"], // Forces the browser to use raw WebSockets for lowest latency
 });
 
 socket.on("connect_error", (err) => {
